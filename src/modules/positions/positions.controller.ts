@@ -34,7 +34,7 @@ export class PositionsController {
     return this.positionsService.createPosition(user, createPositionDto);
   }
 
-  @Get('all')
+  @Get()
   @ApiOperation({
     summary: 'API lấy danh sách tất cả vị trí công việc',
     description:

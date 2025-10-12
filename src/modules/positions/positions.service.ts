@@ -30,15 +30,18 @@ export class PositionsService {
     user: JwtPayloadUser,
     createPositionDto: CreatePositionDto,
   ) {
-    // Kiểm tra xem tên vị trí đã tồn tại hay chưa
+    // Kiểm tra xem tên vị trí đã tồn tại hay chưa (chỉ trong phạm vi user hiện tại)
     const positionExists = await this.positionRepositoty.findOne({
       where: {
         positionName: createPositionDto.positionName,
+        createdBy: user.id,
       },
     });
 
     if (positionExists) {
-      throw new BadRequestException('Tên vị trí đã tồn tại trong hệ thống');
+      throw new BadRequestException(
+        'Tên vị trí đã tồn tại trong danh sách của bạn',
+      );
     }
 
     // Tạo một đối tượng Position mới
@@ -50,7 +53,7 @@ export class PositionsService {
     // Lưu vị trí vào cơ sở dữ liệu
     const savedPosition = await this.positionRepositoty.save(position);
 
-    // Tạo thông tin trả về cho client (loại bỏ thông tin garage)
+    // Tạo thông tin trả về cho client
     const createPositionResponse = {
       id: savedPosition.id,
       positionName: savedPosition.positionName,
@@ -68,10 +71,13 @@ export class PositionsService {
   }
 
   // Lấy thông tin chi tiết vị trí làm việc
-  async getPositionById(id: number) {
-    // Lấy thông tin chi tiết vị trí làm việc
+  async getPositionById(user: JwtPayloadUser, id: number) {
+    // Lấy thông tin chi tiết vị trí làm việc của user hiện tại
     const position = await this.positionRepositoty.findOne({
-      where: { id },
+      where: {
+        id,
+        createdBy: user.id,
+      },
       select: [
         'id',
         'positionName',
@@ -82,7 +88,9 @@ export class PositionsService {
     });
 
     if (!position) {
-      throw new NotFoundException('Không tìm thấy thông tin vị trí');
+      throw new NotFoundException(
+        'Không tìm thấy thông tin vị trí hoặc bạn không có quyền truy cập',
+      );
     }
 
     // Tạo thông tin trả về cho client
@@ -108,22 +116,33 @@ export class PositionsService {
     id: number,
     updatePositionDto: UpdatePositionDto,
   ) {
-    // Kiểm tra xem vị trí có tồn tại hay không
+    // Kiểm tra xem vị trí có tồn tại và thuộc về user hiện tại hay không
     const position = await this.positionRepositoty.findOne({
-      where: { id },
+      where: {
+        id,
+        createdBy: user.id,
+      },
     });
 
     if (!position) {
-      throw new NotFoundException('Không tìm thấy thông tin vị trí');
+      throw new NotFoundException(
+        'Không tìm thấy thông tin vị trí hoặc bạn không có quyền truy cập',
+      );
     }
 
-    // Kiểm tra xem tên vị trí đã tồn tại hay chưa
+    // Kiểm tra xem tên vị trí đã tồn tại hay chưa (chỉ trong phạm vi user hiện tại)
     const positionName = await this.positionRepositoty.findOne({
-      where: { positionName: updatePositionDto.positionName, id: Not(id) },
+      where: {
+        positionName: updatePositionDto.positionName,
+        id: Not(id),
+        createdBy: user.id,
+      },
     });
 
     if (positionName) {
-      throw new BadRequestException('Tên vị trí đã tồn tại');
+      throw new BadRequestException(
+        'Tên vị trí đã tồn tại trong danh sách của bạn',
+      );
     }
 
     // Cập nhật thông tin vị trí
@@ -146,11 +165,18 @@ export class PositionsService {
   }
 
   // Xóa vị trí làm việc
-  async removePosition(id: number) {
-    const position = await this.positionRepositoty.findOne({ where: { id } });
+  async removePosition(user: JwtPayloadUser, id: number) {
+    const position = await this.positionRepositoty.findOne({
+      where: {
+        id,
+        createdBy: user.id,
+      },
+    });
 
     if (!position) {
-      throw new NotFoundException('Không tìm thấy vị trí');
+      throw new NotFoundException(
+        'Không tìm thấy vị trí hoặc bạn không có quyền truy cập',
+      );
     }
 
     const employee = await this.employeeRepository.findOne({
@@ -169,9 +195,12 @@ export class PositionsService {
   }
 
   // Lấy danh sách tất cả vị trí công việc không phân trang
-  async getAllPositions() {
-    // Lấy tất cả vị trí công việc đang hoạt động
+  async getAllPositions(user: JwtPayloadUser) {
+    // Lấy tất cả vị trí công việc của user hiện tại
     const positions = await this.positionRepositoty.find({
+      where: {
+        createdBy: user.id,
+      },
       select: [
         'id',
         'positionName',
@@ -212,7 +241,7 @@ export class PositionsService {
       sortOrder = 'DESC',
     } = searchDto;
 
-    // Tạo query builder với search và filter
+    // Tạo query builder với search và filter (chỉ lấy vị trí của user hiện tại)
     const queryBuilder = this.positionRepositoty
       .createQueryBuilder('position')
       .leftJoin('position.employees', 'employee')
@@ -225,6 +254,7 @@ export class PositionsService {
         'position.createdAt',
       ])
       .addSelect('COUNT(DISTINCT employee.user_id)', 'employeeCount')
+      .where('position.createdBy = :userId', { userId: user.id })
       .groupBy('position.id')
       .addGroupBy('position.positionName')
       .addGroupBy('position.description')

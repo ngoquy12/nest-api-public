@@ -6,26 +6,29 @@ import {
   Param,
   Delete,
   Put,
+  UseGuards,
+  Query,
 } from '@nestjs/common';
 import { PositionsService } from './positions.service';
 import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
 import { ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { JwtPayloadUser } from '../auths/interfaces/jwt-payload-user';
 import { SearchPositionDto } from './dto/search-position.dto';
-import { Query } from '@nestjs/common';
 import { PositionStatus } from './enums/position.enum';
 
 @Controller({ version: '1' })
+@UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class PositionsController {
   constructor(private readonly positionsService: PositionsService) {}
 
   @Post()
   @ApiOperation({
-    summary:
-      'API thêm mới vị trí làm việc - Cần đăng nhập và chủ cửa hàng mới có quyền thực hiện',
+    summary: 'API thêm mới vị trí làm việc',
+    description: 'Thêm mới vị trí làm việc cho người dùng hiện tại',
   })
   createPosition(
     @CurrentUser() user: JwtPayloadUser,
@@ -36,18 +39,16 @@ export class PositionsController {
 
   @Get()
   @ApiOperation({
-    summary: 'API lấy danh sách tất cả vị trí công việc',
-    description:
-      'Lấy danh sách tất cả vị trí công việc không phân trang, không yêu cầu đăng nhập',
+    summary: 'API lấy danh sách vị trí công việc của người dùng',
+    description: 'Lấy danh sách vị trí công việc do người dùng hiện tại tạo',
   })
-  getAllPositions() {
-    return this.positionsService.getAllPositions();
+  getAllPositions(@CurrentUser() user: JwtPayloadUser) {
+    return this.positionsService.getAllPositions(user);
   }
 
   @Get('search-pagination')
   @ApiOperation({
-    summary:
-      'API tìm kiếm và phân trang danh sách vị trí làm việc của cửa hàng',
+    summary: 'API tìm kiếm và phân trang danh sách vị trí làm việc',
     description:
       'Tìm kiếm vị trí theo từ khóa, lọc theo trạng thái, hỗ trợ phân trang và sắp xếp',
   })
@@ -91,14 +92,22 @@ export class PositionsController {
 
   @Get(':id')
   @ApiOperation({
-    summary: 'API lấy thông tin chi tiết vị trí làm việc ',
+    summary: 'API lấy thông tin chi tiết vị trí làm việc',
+    description:
+      'Lấy thông tin chi tiết vị trí làm việc của người dùng hiện tại',
   })
-  getPositionById(@Param('id') id: string) {
-    return this.positionsService.getPositionById(+id);
+  getPositionById(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id') id: string,
+  ) {
+    return this.positionsService.getPositionById(user, +id);
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'API cập nhật thông tin vị trí làm việc' })
+  @ApiOperation({
+    summary: 'API cập nhật thông tin vị trí làm việc',
+    description: 'Cập nhật thông tin vị trí làm việc của người dùng hiện tại',
+  })
   updatePosition(
     @CurrentUser() user: JwtPayloadUser,
     @Param('id') id: string,
@@ -108,8 +117,11 @@ export class PositionsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'API xóa vị trí làm việc' })
-  removePosition(@Param('id') id: string) {
-    return this.positionsService.removePosition(+id);
+  @ApiOperation({
+    summary: 'API xóa vị trí làm việc',
+    description: 'Xóa vị trí làm việc của người dùng hiện tại',
+  })
+  removePosition(@CurrentUser() user: JwtPayloadUser, @Param('id') id: string) {
+    return this.positionsService.removePosition(user, +id);
   }
 }

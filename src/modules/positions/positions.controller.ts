@@ -40,6 +40,16 @@ export class PositionsController {
     return this.positionsService.createPosition(user, createPositionDto);
   }
 
+  @Get('all')
+  @ApiOperation({
+    summary: 'API lấy danh sách tất cả vị trí công việc',
+    description:
+      'Lấy danh sách tất cả vị trí công việc không phân trang, không yêu cầu đăng nhập',
+  })
+  getAllPositions() {
+    return this.positionsService.getAllPositions();
+  }
+
   @Get('search-pagination')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({

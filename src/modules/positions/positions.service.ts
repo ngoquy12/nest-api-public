@@ -168,6 +168,37 @@ export class PositionsService {
     return new BaseResponse(HttpStatus.OK, 'Xóa vị trí thành công', null);
   }
 
+  // Lấy danh sách tất cả vị trí công việc không phân trang
+  async getAllPositions() {
+    // Lấy tất cả vị trí công việc đang hoạt động
+    const positions = await this.positionRepositoty.find({
+      select: [
+        'id',
+        'positionName',
+        'description',
+        'positionStatus',
+        'createdAt',
+      ],
+      order: { positionName: 'ASC' },
+    });
+
+    // Format dữ liệu trả về
+    const formattedPositions = positions.map((position) => ({
+      id: position.id,
+      positionName: position.positionName,
+      description: position.description,
+      positionStatus: position.positionStatus,
+      createdAt: position.createdAt,
+    }));
+
+    // Trả về phản hồi thành công
+    return new BaseResponse(
+      HttpStatus.OK,
+      'Lấy danh sách vị trí công việc thành công',
+      formattedPositions,
+    );
+  }
+
   // Tìm kiếm và phân trang danh sách vị trí làm việc
   async searchPositions(
     user: JwtPayloadUser,

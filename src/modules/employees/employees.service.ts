@@ -172,7 +172,7 @@ export class EmployeesService {
       dto.phoneNumber = employee.phoneNumber;
       dto.gender = employee.gender;
       dto.dateBirth = employee.dateBirth
-        ? employee.dateBirth?.toISOString()
+        ? dayjs(employee.dateBirth).format('YYYY-MM-DD')
         : null;
       dto.createdAt = employee.createdAt
         ? employee.createdAt?.toISOString()
@@ -272,8 +272,12 @@ export class EmployeesService {
       employeeName: employee.employeeName,
       phoneNumber: employee.phoneNumber,
       gender: employee.gender,
-      dateBirth: employee.dateBirth,
-      createdAt: employee.createdAt,
+      dateBirth: employee.dateBirth
+        ? dayjs(employee.dateBirth).format('YYYY-MM-DD')
+        : null,
+      createdAt: employee.createdAt
+        ? dayjs(employee.createdAt).toISOString()
+        : null,
       position: {
         id: employee.position?.id,
         positionName: employee.position?.positionName,

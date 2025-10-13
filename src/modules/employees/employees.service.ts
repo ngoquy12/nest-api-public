@@ -139,7 +139,6 @@ export class EmployeesService {
       queryBuilder.andWhere(
         `(employee.employeeCode LIKE :keyword 
           OR employee.employeeName LIKE :keyword 
-          OR employee.email LIKE :keyword
           OR employee.phoneNumber LIKE :keyword)`,
         { keyword: `%${keyword}%` },
       );
@@ -172,8 +171,12 @@ export class EmployeesService {
       dto.employeeName = employee.employeeName;
       dto.phoneNumber = employee.phoneNumber;
       dto.gender = employee.gender;
-      dto.dateBirth = employee.dateBirth?.toISOString().split('T')[0];
-      dto.createdAt = employee.createdAt.toISOString();
+      dto.dateBirth = employee.dateBirth
+        ? employee.dateBirth?.toISOString()
+        : null;
+      dto.createdAt = employee.createdAt
+        ? employee.createdAt?.toISOString()
+        : null;
       dto.positionId = employee.position?.id;
       dto.positionName = employee.position?.positionName || 'Chưa có vị trí';
 
@@ -269,8 +272,8 @@ export class EmployeesService {
       employeeName: employee.employeeName,
       phoneNumber: employee.phoneNumber,
       gender: employee.gender,
-      dateBirth: employee.dateBirth?.toISOString().split('T')[0],
-      createdAt: employee.createdAt.toISOString(),
+      dateBirth: employee.dateBirth,
+      createdAt: employee.createdAt,
       position: {
         id: employee.position?.id,
         positionName: employee.position?.positionName,
@@ -402,7 +405,7 @@ export class EmployeesService {
         employeeName: updatedEmployee.employeeName,
         phoneNumber: updatedEmployee.phoneNumber,
         gender: updatedEmployee.gender,
-        dateBirth: updatedEmployee.dateBirth?.toISOString().split('T')[0],
+        dateBirth: updatedEmployee.dateBirth,
         positionName: updatedEmployee.position?.positionName,
       });
     } catch (error) {

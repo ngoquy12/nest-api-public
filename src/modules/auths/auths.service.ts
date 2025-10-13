@@ -25,7 +25,6 @@ import { Role } from '../roles/entities/role.entity';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { PasswordHistory } from '../password-histories/entities/password-history.entity';
 import { Image } from '../images/entities/image.entity';
-import { TypeImage } from 'src/common/enums/type-image.enum';
 import { BaseResponse } from 'src/common/responses/base-response';
 import { RoleCode } from 'src/common/enums/role-code.enum';
 
@@ -155,8 +154,6 @@ export class AuthsService {
           dateOfBirth: newUser.dateBirth,
           address: newUser.address,
           gender: newUser.gender,
-          avatar:
-            'https://i.pinimg.com/736x/f8/06/59/f806591329380bf9212dfa5fe948aaa8.jpg',
         },
       },
     );
@@ -267,11 +264,6 @@ export class AuthsService {
       isNewSession: !currentDeviceSession,
     });
 
-    // Lấy ra hình ảnh của user đăng nhập
-    const userImage = await this.imageRepository.findOne({
-      where: { refId: user.id, type: TypeImage.EMPLOYEE },
-    });
-
     return new BaseResponse(HttpStatus.OK, 'Đăng nhập thành công', {
       accessToken,
       refreshToken,
@@ -285,9 +277,6 @@ export class AuthsService {
         address: user.address,
         gender: user.gender,
         role: user.role,
-        avatar:
-          userImage?.url ||
-          'https://i.pinimg.com/736x/f8/06/59/f806591329380bf9212dfa5fe948aaa8.jpg',
       },
     });
   }

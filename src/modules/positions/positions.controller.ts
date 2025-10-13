@@ -14,10 +14,10 @@ import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
 import { ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { CurrentUser } from 'src/common/decorators/current-user.decorator';
-import { JwtPayloadUser } from '../auths/interfaces/jwt-payload-user';
 import { SearchPositionDto } from './dto/search-position.dto';
 import { PositionStatus } from './enums/position.enum';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { RoleCode } from 'src/common/enums/role-code.enum';
 
 @Controller({ version: '1' })
 @UseGuards(JwtAuthGuard)
@@ -26,27 +26,27 @@ export class PositionsController {
   constructor(private readonly positionsService: PositionsService) {}
 
   @Post()
+  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'API thêm mới vị trí làm việc',
     description: 'Thêm mới vị trí làm việc cho người dùng hiện tại',
   })
-  createPosition(
-    @CurrentUser() user: JwtPayloadUser,
-    @Body() createPositionDto: CreatePositionDto,
-  ) {
-    return this.positionsService.createPosition(user, createPositionDto);
+  createPosition(@Body() createPositionDto: CreatePositionDto) {
+    return this.positionsService.createPosition(createPositionDto);
   }
 
   @Get()
+  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'API lấy danh sách vị trí công việc của người dùng',
     description: 'Lấy danh sách vị trí công việc do người dùng hiện tại tạo',
   })
-  getAllPositions(@CurrentUser() user: JwtPayloadUser) {
-    return this.positionsService.getAllPositions(user);
+  getAllPositions() {
+    return this.positionsService.getAllPositions();
   }
 
   @Get('search-pagination')
+  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'API tìm kiếm và phân trang danh sách vị trí làm việc',
     description:
@@ -76,52 +76,41 @@ export class PositionsController {
     description: 'Số lượng bản ghi trên mỗi trang',
     example: 10,
   })
-  @ApiQuery({
-    name: 'sortOrder',
-    required: false,
-    description: 'Sắp xếp theo ngày tạo',
-    enum: ['ASC', 'DESC'],
-    example: 'DESC',
-  })
-  searchPositions(
-    @CurrentUser() user: JwtPayloadUser,
-    @Query() searchDto: SearchPositionDto,
-  ) {
-    return this.positionsService.searchPositions(user, searchDto);
+  searchPositions(@Query() searchDto: SearchPositionDto) {
+    return this.positionsService.searchPositions(searchDto);
   }
 
   @Get(':id')
+  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'API lấy thông tin chi tiết vị trí làm việc',
     description:
       'Lấy thông tin chi tiết vị trí làm việc của người dùng hiện tại',
   })
-  getPositionById(
-    @CurrentUser() user: JwtPayloadUser,
-    @Param('id') id: string,
-  ) {
-    return this.positionsService.getPositionById(user, +id);
+  getPositionById(@Param('id') id: string) {
+    return this.positionsService.getPositionById(+id);
   }
 
   @Put(':id')
+  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'API cập nhật thông tin vị trí làm việc',
     description: 'Cập nhật thông tin vị trí làm việc của người dùng hiện tại',
   })
   updatePosition(
-    @CurrentUser() user: JwtPayloadUser,
     @Param('id') id: string,
     @Body() updatePositionDto: UpdatePositionDto,
   ) {
-    return this.positionsService.updatePosition(user, +id, updatePositionDto);
+    return this.positionsService.updatePosition(+id, updatePositionDto);
   }
 
   @Delete(':id')
+  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'API xóa vị trí làm việc',
     description: 'Xóa vị trí làm việc của người dùng hiện tại',
   })
-  removePosition(@CurrentUser() user: JwtPayloadUser, @Param('id') id: string) {
-    return this.positionsService.removePosition(user, +id);
+  removePosition(@Param('id') id: string) {
+    return this.positionsService.removePosition(+id);
   }
 }

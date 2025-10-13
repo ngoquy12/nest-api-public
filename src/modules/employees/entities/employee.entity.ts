@@ -1,41 +1,60 @@
 import { Position } from 'src/modules/positions/entities/position.entity';
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  OneToOne,
-  PrimaryColumn,
-} from 'typeorm';
-import { EmployeeStatus } from '../enums/employee-status';
-import { User } from 'src/modules/users/entities/user.entity';
+import { Column, Entity, ManyToOne, JoinColumn } from 'typeorm';
+import { BaseEntity } from 'src/common/entities/base.entity';
+import { ApiProperty } from '@nestjs/swagger';
+import { Gender } from 'src/common/enums/gender.enum';
 
 @Entity('employees')
-export class Employee {
-  @Column({ unique: true })
+export class Employee extends BaseEntity {
+  @ApiProperty({
+    description: 'Mã nhân viên duy nhất',
+    example: 'NV0001',
+  })
+  @Column({ unique: true, length: 30 })
   employeeCode: string;
 
-  @Column({
-    type: 'enum',
-    enum: EmployeeStatus,
-    default: EmployeeStatus.WORKING,
+  @ApiProperty({
+    description: 'Tên đầy đủ của nhân viên',
+    example: 'Nguyễn Văn Nam',
   })
-  employeeStatus: EmployeeStatus;
+  @Column({ length: 200 })
+  employeeName: string;
 
-  @PrimaryColumn({ name: 'user_id' })
-  userId: number;
+  @ApiProperty({
+    description: 'Giới tính của nhân viên',
+    enum: Gender,
+    example: Gender.MALE,
+  })
+  @Column({ type: 'enum', enum: Gender, default: Gender.MALE })
+  gender: Gender;
 
-  @OneToOne(() => User, { cascade: true, onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
-  user: User;
+  @ApiProperty({
+    description: 'Ngày sinh của nhân viên',
+    example: '1990-01-01',
+    nullable: true,
+  })
+  @Column({ type: 'date', nullable: true })
+  dateBirth: Date;
 
-  @ManyToOne(() => Position, (position) => position.employees)
+  @ApiProperty({
+    description: 'Số điện thoại của nhân viên',
+    example: '0123456789',
+  })
+  @Column({ unique: true, length: 15 })
+  phoneNumber: string;
+
+  @ApiProperty({
+    description: 'ID của vị trí công việc',
+    example: 1,
+    nullable: true,
+  })
+  @Column({ nullable: true })
+  positionId: number;
+
+  // Quan hệ với Position (Many-to-One)
+  @ManyToOne(() => Position, (position) => position.employees, {
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'positionId' })
   position: Position;
-
-  @Column({ name: 'created_by', nullable: true })
-  createdBy: number;
-
-  @ManyToOne(() => User, { nullable: true })
-  @JoinColumn({ name: 'created_by' })
-  creator: User;
 }

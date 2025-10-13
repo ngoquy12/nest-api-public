@@ -38,9 +38,9 @@ async function bootstrap() {
   });
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Document API Ixe Agent')
+    .setTitle('Tài liệu API phục vụ học tập của sinh viên Rikkei Education')
     .setDescription(
-      'Bộ tài liệu cung cấp đầy đủ, chi tiết các API phục vụ cho ứng dụng Ixe Agent',
+      'Bộ tài liệu cung cấp đầy đủ, chi tiết các API phục vụ cho sinh viên học tập',
     )
     .setVersion('1.0.0')
     .addBearerAuth({

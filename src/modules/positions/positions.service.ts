@@ -11,7 +11,6 @@ import { Position } from './entities/position.entity';
 import { Not, Repository } from 'typeorm';
 import { Employee } from '../employees/entities/employee.entity';
 import { BaseResponse } from 'src/common/responses/base-response';
-import { JwtPayloadUser } from '../auths/interfaces/jwt-payload-user';
 import { SearchPositionDto } from './dto/search-position.dto';
 import { PaginatedResponse } from 'src/common/responses/base-response';
 
@@ -26,15 +25,11 @@ export class PositionsService {
   ) {}
 
   // Thêm mới vị trí làm việc
-  async createPosition(
-    user: JwtPayloadUser,
-    createPositionDto: CreatePositionDto,
-  ) {
-    // Kiểm tra xem tên vị trí đã tồn tại hay chưa (chỉ trong phạm vi user hiện tại)
+  async createPosition(createPositionDto: CreatePositionDto) {
+    // Kiểm tra xem tên vị trí đã tồn tại hay chưa
     const positionExists = await this.positionRepositoty.findOne({
       where: {
         positionName: createPositionDto.positionName,
-        createdBy: user.id,
       },
     });
 
@@ -47,7 +42,6 @@ export class PositionsService {
     // Tạo một đối tượng Position mới
     const position = this.positionRepositoty.create({
       ...createPositionDto,
-      createdBy: user.id,
     });
 
     // Lưu vị trí vào cơ sở dữ liệu
@@ -71,12 +65,11 @@ export class PositionsService {
   }
 
   // Lấy thông tin chi tiết vị trí làm việc
-  async getPositionById(user: JwtPayloadUser, id: number) {
-    // Lấy thông tin chi tiết vị trí làm việc của user hiện tại
+  async getPositionById(id: number) {
+    // Lấy thông tin chi tiết vị trí làm việc
     const position = await this.positionRepositoty.findOne({
       where: {
         id,
-        createdBy: user.id,
       },
       select: [
         'id',
@@ -111,16 +104,11 @@ export class PositionsService {
   }
 
   // Cập nhật thông tin vị trí làm việc
-  async updatePosition(
-    user: JwtPayloadUser,
-    id: number,
-    updatePositionDto: UpdatePositionDto,
-  ) {
-    // Kiểm tra xem vị trí có tồn tại và thuộc về user hiện tại hay không
+  async updatePosition(id: number, updatePositionDto: UpdatePositionDto) {
+    // Kiểm tra xem vị trí có tồn tại hay không
     const position = await this.positionRepositoty.findOne({
       where: {
         id,
-        createdBy: user.id,
       },
     });
 
@@ -130,12 +118,11 @@ export class PositionsService {
       );
     }
 
-    // Kiểm tra xem tên vị trí đã tồn tại hay chưa (chỉ trong phạm vi user hiện tại)
+    // Kiểm tra xem tên vị trí đã tồn tại hay chưa
     const positionName = await this.positionRepositoty.findOne({
       where: {
         positionName: updatePositionDto.positionName,
         id: Not(id),
-        createdBy: user.id,
       },
     });
 
@@ -148,7 +135,6 @@ export class PositionsService {
     // Cập nhật thông tin vị trí
     await this.positionRepositoty.update(id, {
       ...updatePositionDto,
-      updatedBy: user.id,
     });
 
     return new BaseResponse(
@@ -165,11 +151,10 @@ export class PositionsService {
   }
 
   // Xóa vị trí làm việc
-  async removePosition(user: JwtPayloadUser, id: number) {
+  async removePosition(id: number) {
     const position = await this.positionRepositoty.findOne({
       where: {
         id,
-        createdBy: user.id,
       },
     });
 
@@ -195,12 +180,10 @@ export class PositionsService {
   }
 
   // Lấy danh sách tất cả vị trí công việc không phân trang
-  async getAllPositions(user: JwtPayloadUser) {
-    // Lấy tất cả vị trí công việc của user hiện tại
+  async getAllPositions() {
+    // Lấy tất cả vị trí công việc
     const positions = await this.positionRepositoty.find({
-      where: {
-        createdBy: user.id,
-      },
+      where: {},
       select: [
         'id',
         'positionName',
@@ -230,22 +213,14 @@ export class PositionsService {
 
   // Tìm kiếm và phân trang danh sách vị trí làm việc
   async searchPositions(
-    user: JwtPayloadUser,
     searchDto: SearchPositionDto,
   ): Promise<PaginatedResponse<any>> {
-    const {
-      keyword,
-      positionStatus,
-      currentPage = 1,
-      pageSize = 10,
-      sortOrder = 'DESC',
-    } = searchDto;
+    const { keyword, currentPage = 1, pageSize = 10 } = searchDto;
 
-    // Tạo query builder với search và filter (chỉ lấy vị trí của user hiện tại)
+    // Tạo query builder với search và filter
     const queryBuilder = this.positionRepositoty
       .createQueryBuilder('position')
       .leftJoin('position.employees', 'employee')
-      .leftJoin('employee.user', 'user')
       .select([
         'position.id',
         'position.positionName',
@@ -253,8 +228,7 @@ export class PositionsService {
         'position.positionStatus',
         'position.createdAt',
       ])
-      .addSelect('COUNT(DISTINCT employee.user_id)', 'employeeCount')
-      .where('position.createdBy = :userId', { userId: user.id })
+      .addSelect('COUNT(DISTINCT employee.id)', 'employeeCount')
       .groupBy('position.id')
       .addGroupBy('position.positionName')
       .addGroupBy('position.description')
@@ -269,15 +243,8 @@ export class PositionsService {
       );
     }
 
-    // Lọc theo trạng thái
-    if (positionStatus) {
-      queryBuilder.andWhere('position.positionStatus = :positionStatus', {
-        positionStatus,
-      });
-    }
-
     // Sắp xếp
-    queryBuilder.orderBy('position.createdAt', sortOrder);
+    queryBuilder.orderBy('position.createdAt', 'DESC');
 
     // Đếm tổng số bản ghi (trước khi phân trang)
     const totalRecords = await queryBuilder.getCount();

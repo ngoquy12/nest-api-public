@@ -1,6 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsInt, IsOptional, IsString } from 'class-validator';
-import { EmployeeStatus } from '../enums/employee-status';
+import { IsInt, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SearchAndPagingEmployeeDto {
@@ -31,21 +30,6 @@ export class SearchAndPagingEmployeeDto {
   @Type(() => Number)
   @IsInt()
   pageSize?: number;
-
-  @ApiPropertyOptional({
-    description: 'Danh sách trạng thái nhân viên',
-    enum: EmployeeStatus,
-    example: [EmployeeStatus.WORKING, EmployeeStatus.TEMPORARILY_INACTIVE],
-    type: 'array',
-    items: {
-      type: 'string',
-      enum: Object.values(EmployeeStatus),
-    },
-    isArray: true,
-  })
-  @IsOptional()
-  @IsEnum(EmployeeStatus, { each: true })
-  employeeStatus?: EmployeeStatus[];
 
   @ApiPropertyOptional({
     description: 'Danh sách ID vị trí công việc',

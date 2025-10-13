@@ -24,8 +24,6 @@ import {
   ApiQuery,
   ApiResponse,
   ApiTags,
-  ApiConsumes,
-  ApiProduces,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -39,9 +37,7 @@ import {
 
 @ApiTags('Employees - Quản lý nhân viên')
 @ApiBearerAuth()
-@Controller({ version: '1', path: 'employees' })
-@ApiConsumes('application/json')
-@ApiProduces('application/json')
+@Controller({ version: '1' })
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
 

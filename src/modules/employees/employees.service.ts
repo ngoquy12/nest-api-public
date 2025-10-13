@@ -71,7 +71,8 @@ export class EmployeesService {
 
       for (const check of duplicateChecks) {
         const existing = await this.employeeRepository.findOne({
-          where: { [check.field]: check.value },
+          where: { [check.field]: (check.value as string)?.trim() },
+          withDeleted: true,
         });
         if (existing) {
           throw new BadRequestException(check.label);
@@ -91,9 +92,9 @@ export class EmployeesService {
 
       // Tạo nhân viên mới
       const newEmployee = this.employeeRepository.create({
-        employeeCode,
-        employeeName,
-        phoneNumber,
+        employeeCode: employeeCode?.trim(),
+        employeeName: employeeName?.trim(),
+        phoneNumber: phoneNumber?.trim(),
         gender: gender || Gender.MALE,
         dateBirth: dateBirth ? new Date(dateBirth) : null,
         position,
@@ -115,6 +116,15 @@ export class EmployeesService {
       });
     } catch (error) {
       await queryRunner.rollbackTransaction();
+      const rawMessage = error instanceof Error ? error.message : '';
+      if (
+        typeof rawMessage === 'string' &&
+        rawMessage.includes('Duplicate entry')
+      ) {
+        throw new BadRequestException(
+          'Mã nhân viên hoặc số điện thoại đã tồn tại',
+        );
+      }
       throw new BadRequestException(
         error instanceof Error ? error.message : 'Thêm mới nhân viên thất bại',
       );
@@ -333,9 +343,10 @@ export class EmployeesService {
       for (const check of duplicateChecks) {
         const existing = await this.employeeRepository.findOne({
           where: {
-            [check.field]: check.value,
+            [check.field]: (check.value as string)?.trim(),
             id: Not(id),
           },
+          withDeleted: true,
         });
         if (existing) {
           throw new BadRequestException(check.label);
@@ -367,9 +378,9 @@ export class EmployeesService {
 
       // Cập nhật thông tin nhân viên
       Object.assign(employee, {
-        employeeCode: updateEmployeeDto.employeeCode,
-        employeeName: updateEmployeeDto.employeeName,
-        phoneNumber: updateEmployeeDto.phoneNumber,
+        employeeCode: updateEmployeeDto.employeeCode?.trim(),
+        employeeName: updateEmployeeDto.employeeName?.trim(),
+        phoneNumber: updateEmployeeDto.phoneNumber?.trim(),
         gender: updateEmployeeDto.gender,
         dateBirth: updateEmployeeDto.dateBirth
           ? new Date(updateEmployeeDto.dateBirth)
@@ -414,6 +425,15 @@ export class EmployeesService {
       });
     } catch (error) {
       await queryRunner.rollbackTransaction();
+      const rawMessage = error instanceof Error ? error.message : '';
+      if (
+        typeof rawMessage === 'string' &&
+        rawMessage.includes('Duplicate entry')
+      ) {
+        throw new BadRequestException(
+          'Mã nhân viên hoặc số điện thoại đã tồn tại',
+        );
+      }
       throw new BadRequestException(
         error.message || 'Cập nhật nhân viên thất bại',
       );

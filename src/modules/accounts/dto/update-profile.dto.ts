@@ -11,10 +11,7 @@ import {
 } from 'class-validator';
 import { Gender } from 'src/common/enums/gender.enum';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsBeforeToday,
-  IsAgeBetween18And60,
-} from 'src/common/validators/index';
+import { IsBeforeToday } from 'src/common/validators/index';
 
 export class UpdateProfileDto {
   @ApiPropertyOptional({
@@ -44,7 +41,6 @@ export class UpdateProfileDto {
   @ApiPropertyOptional({ example: '1990-01-01', description: 'Ngày sinh' })
   @IsOptional()
   @IsBeforeToday({ message: 'Ngày sinh phải nhỏ hơn ngày hiện tại' })
-  @IsAgeBetween18And60({ message: 'Tuổi phải từ 18 đến dưới 60' })
   dateBirth?: string;
 
   @ApiProperty({ example: Gender.MALE, description: 'Giới tính' })

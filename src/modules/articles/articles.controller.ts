@@ -21,7 +21,7 @@ import { JwtPayloadUser } from '../auths/interfaces/jwt-payload-user';
 
 @ApiTags('Articles')
 @ApiBearerAuth()
-@Controller({ version: '1', path: 'articles' })
+@Controller({ version: '1' })
 export class ArticlesController {
   constructor(private readonly articlesService: ArticlesService) {}
 

@@ -374,6 +374,36 @@ export class ProductsService {
     );
   }
 
+  // Lấy toàn bộ sản phẩm (không tìm kiếm, không phân trang) nhưng trả về cùng format
+  async listAllProducts(): Promise<BaseResponse<ProductPaginationResponse[]>> {
+    // Lấy tất cả sản phẩm chưa bị xóa kèm category
+    const products = await this.productRepository.find({
+      where: { deletedAt: null },
+      relations: ['category'],
+      order: { createdAt: 'DESC' },
+    });
+
+    const productResponses = products.map((p) => this.mapProductResponse(p));
+
+    // Nạp ảnh cho từng sản phẩm
+    for (const productResponse of productResponses) {
+      const images = await this.imageRepository.find({
+        where: { refId: productResponse.id, type: TypeImage.PRODUCT },
+      });
+      productResponse.images = images.map((img) => ({
+        id: img.id,
+        url: img.url,
+        publicId: img.publicId,
+      }));
+    }
+
+    return new BaseResponse<ProductPaginationResponse[]>(
+      HttpStatus.OK,
+      'Lấy danh sách sản phẩm thành công',
+      productResponses,
+    );
+  }
+
   // Lấy thông tin chi tiết một sản phẩm theo Id
   async findOneProduct(
     user: JwtPayloadUser,

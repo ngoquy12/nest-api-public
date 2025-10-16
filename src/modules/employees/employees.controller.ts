@@ -28,8 +28,6 @@ import {
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { JwtPayloadUser } from '../auths/interfaces/jwt-payload-user';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { RoleCode } from 'src/common/enums/role-code.enum';
 import {
   BaseResponse,
   PaginatedResponse,
@@ -43,7 +41,6 @@ export class EmployeesController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'Tạo nhân viên mới',
     description: `
@@ -131,7 +128,6 @@ export class EmployeesController {
 
   @Get('search-paging')
   @UseGuards(JwtAuthGuard)
-  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'Tìm kiếm và phân trang nhân viên',
     description: `
@@ -210,7 +206,6 @@ export class EmployeesController {
 
   @Get('all')
   @UseGuards(JwtAuthGuard)
-  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'Lấy danh sách tất cả nhân viên',
     description: `
@@ -247,7 +242,6 @@ export class EmployeesController {
 
   @Get('statistics')
   @UseGuards(JwtAuthGuard)
-  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'Thống kê nhân viên',
     description: `
@@ -286,7 +280,6 @@ export class EmployeesController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
-  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'Lấy thông tin chi tiết nhân viên',
     description: `
@@ -349,7 +342,6 @@ export class EmployeesController {
 
   @Put(':id')
   @UseGuards(JwtAuthGuard)
-  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'Cập nhật thông tin nhân viên',
     description: `
@@ -444,7 +436,6 @@ export class EmployeesController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
-  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'Xóa nhân viên (Soft Delete)',
     description: `

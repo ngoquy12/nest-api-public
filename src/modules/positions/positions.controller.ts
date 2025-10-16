@@ -21,8 +21,6 @@ import {
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { SearchPositionDto } from './dto/search-position.dto';
 import { PositionStatus } from './enums/position.enum';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { RoleCode } from 'src/common/enums/role-code.enum';
 
 @ApiTags('Positions - Quản lý vị trí làm việc')
 @Controller({ version: '1' })
@@ -32,7 +30,6 @@ export class PositionsController {
   constructor(private readonly positionsService: PositionsService) {}
 
   @Post()
-  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'API thêm mới vị trí làm việc',
     description: 'Thêm mới vị trí làm việc cho người dùng hiện tại',
@@ -42,7 +39,6 @@ export class PositionsController {
   }
 
   @Get()
-  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'API lấy danh sách vị trí công việc của người dùng',
     description: 'Lấy danh sách vị trí công việc do người dùng hiện tại tạo',
@@ -52,7 +48,6 @@ export class PositionsController {
   }
 
   @Get('search-pagination')
-  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'API tìm kiếm và phân trang danh sách vị trí làm việc',
     description:
@@ -87,7 +82,6 @@ export class PositionsController {
   }
 
   @Get(':id')
-  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'API lấy thông tin chi tiết vị trí làm việc',
     description:
@@ -98,7 +92,6 @@ export class PositionsController {
   }
 
   @Put(':id')
-  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'API cập nhật thông tin vị trí làm việc',
     description: 'Cập nhật thông tin vị trí làm việc của người dùng hiện tại',
@@ -111,7 +104,6 @@ export class PositionsController {
   }
 
   @Delete(':id')
-  @Roles(RoleCode.MANAGER)
   @ApiOperation({
     summary: 'API xóa vị trí làm việc',
     description: 'Xóa vị trí làm việc của người dùng hiện tại',

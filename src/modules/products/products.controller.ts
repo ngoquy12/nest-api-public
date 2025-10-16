@@ -39,7 +39,6 @@ export class ProductsController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  @Roles(RoleCode.MANAGER)
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FilesInterceptor('images'))
   @ApiConsumes('multipart/form-data')
@@ -101,9 +100,20 @@ export class ProductsController {
     return this.productsService.searchAndPagingProducts(user, query);
   }
 
+  @Get('all')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Lấy toàn bộ sản phẩm (không phân trang, không tìm kiếm)',
+    description:
+      'API trả về toàn bộ sản phẩm chưa bị xóa theo format giống API tìm kiếm, phân trang.',
+  })
+  listAllProducts() {
+    return this.productsService.listAllProducts();
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
-  @Roles(RoleCode.MANAGER)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Lấy thông tin chi tiết sản phẩm',
@@ -123,7 +133,6 @@ export class ProductsController {
 
   @Put(':id')
   @UseGuards(JwtAuthGuard)
-  @Roles(RoleCode.MANAGER)
   @HttpCode(HttpStatus.OK)
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FilesInterceptor('images'))

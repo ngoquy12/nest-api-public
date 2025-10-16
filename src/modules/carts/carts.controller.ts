@@ -28,7 +28,7 @@ import { CartResponse } from './interfaces/cart.interface';
 
 @ApiTags('Giỏ hàng (Carts)')
 @ApiBearerAuth()
-@Controller('carts')
+@Controller({ version: '1' })
 @UseGuards(JwtAuthGuard)
 export class CartsController {
   constructor(private readonly cartsService: CartsSimpleService) {}

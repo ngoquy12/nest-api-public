@@ -128,6 +128,15 @@ export class CartsSimpleService {
     const cartItemsResponse: CartItemResponse[] = [];
 
     for (const cartItem of cart.cartItems) {
+      // Skip or clean up orphan items whose product no longer exists
+      if (!cartItem.product) {
+        try {
+          await this.cartItemRepository.delete({ id: cartItem.id });
+        } catch (_) {
+          // ignore cleanup errors; just skip the item
+        }
+        continue;
+      }
       const { image } = await this.getProductWithImage(cartItem.product.id);
       cartItemsResponse.push(this.mapCartItemResponse(cartItem, image?.url));
     }

@@ -26,9 +26,6 @@ import { CloudinaryService } from 'src/services/cloudinary.service';
 import { Image } from '../images/entities/image.entity';
 import { TypeImage } from 'src/common/enums/type-image.enum';
 import { ImagesService } from '../images/services/images.service';
-import { ChangeLogsService } from '../change-logs/change-logs.service';
-import { ChangeLogType } from '../change-logs/enums/change-log-type.enum';
-import { ChangeLogAction } from '../change-logs/enums/change-log-action.enum';
 
 import { formatFromDecimalToNumber } from 'src/common/utils/formatData';
 import { formatMoneyByUnit } from 'src/common/utils/formatData';
@@ -48,8 +45,6 @@ export class ProductsService {
     private readonly cloudinaryService: CloudinaryService,
 
     private readonly imagesService: ImagesService,
-
-    private readonly changeLogsService: ChangeLogsService,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -238,27 +233,6 @@ export class ProductsService {
       if (savedImages.length > 0) {
         await queryRunner.manager.save(savedImages);
       }
-
-      // 7. Lưu lịch sử thay đổi
-      const newProductData = {
-        ...this.mapProductResponse(productWithCategory),
-        images: savedImages.map((img) => img.url),
-        category: {
-          id: productWithCategory.category.id,
-          categoryName: productWithCategory.category.categoryName,
-          categoryStatus: productWithCategory.category.categoryStatus,
-          categoryDescription: productWithCategory.category.categoryDescription,
-        },
-      };
-
-      await this.changeLogsService.logChange(
-        ChangeLogAction.CREATE,
-        ChangeLogType.PRODUCT,
-        savedProduct.id,
-        null,
-        newProductData,
-        user.id,
-      );
 
       await queryRunner.commitTransaction();
 
@@ -480,17 +454,6 @@ export class ProductsService {
       }
     }
 
-    // Lưu dữ liệu cũ để so sánh (trước khi cập nhật)
-    const oldImages = await this.imageRepository.find({
-      where: { refId: product.id, type: TypeImage.PRODUCT },
-    });
-
-    const oldProductData = {
-      ...this.mapProductResponse(product),
-      images: oldImages.map((img) => img.url),
-      categoryName: product.category.categoryName,
-    };
-
     // ====== BẮT ĐẦU TRANSACTION ======
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -555,27 +518,6 @@ export class ProductsService {
         await queryRunner.manager.save(uploadedImages);
       }
 
-      // Lưu lịch sử thay đổi
-      const newProductData = {
-        ...this.mapProductResponse(updatedProduct),
-        images: [
-          ...oldImages
-            .filter((img) => keepIds.includes(img.id))
-            .map((img) => img.url),
-          ...uploadedImages.map((img) => img.url),
-        ],
-        categoryName: product.category.categoryName,
-      };
-
-      await this.changeLogsService.logChange(
-        ChangeLogAction.UPDATE,
-        ChangeLogType.PRODUCT,
-        product.id,
-        oldProductData,
-        newProductData,
-        user.id,
-      );
-
       await queryRunner.commitTransaction();
 
       // Mapping kết quả trả về
@@ -608,10 +550,7 @@ export class ProductsService {
   }
 
   // Xóa sản phẩm theo Id
-  async deleteProduct(
-    id: number,
-    user: JwtPayloadUser,
-  ): Promise<BaseResponse<null>> {
+  async deleteProduct(id: number): Promise<BaseResponse<null>> {
     // Kiểm tra xem sản phẩm có tồn tại không
     const product = await this.productRepository.findOne({
       where: { id, deletedAt: null },
@@ -624,19 +563,6 @@ export class ProductsService {
 
     // Xóa sản phẩm
     await this.productRepository.softDelete(id);
-
-    // Lưu thông tin lịch sử xóa
-    await this.changeLogsService.logChange(
-      ChangeLogAction.DELETE,
-      ChangeLogType.PRODUCT,
-      product.id,
-      {
-        ...this.mapProductResponse(product),
-        categoryName: product.category.categoryName,
-      },
-      null,
-      user.id,
-    );
 
     // Trả về phản hồi thành công
     return new BaseResponse(HttpStatus.OK, 'Xóa sản phẩm thành công', null);

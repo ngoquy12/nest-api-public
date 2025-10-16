@@ -1,31 +1,65 @@
-import {
-  Controller,
-  Post,
-  Body,
-  HttpStatus,
-  Get,
-  Req,
-  UseGuards,
-  Patch,
-} from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { AuthsService } from './auths.service';
 import { RegisterDto } from './dto/register.dto';
-import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiBody,
+} from '@nestjs/swagger';
 import { LoginDto } from './dto/login.dto';
 import { LogoutDto } from './dto/logout.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { Request } from 'express';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { ChangePasswordDto } from './dto/change-password.dto';
+import { Request } from 'express';
 import { Throttle, seconds } from '@nestjs/throttler';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { JwtPayloadUser } from './interfaces/jwt-payload-user';
 
+@ApiTags('Xác thực (Authentication)')
 @ApiBearerAuth()
 @Controller({ version: '1' })
 export class AuthsController {
   constructor(private readonly authsService: AuthsService) {}
 
   @Post('register')
-  @ApiOperation({ summary: 'API đăng ký tài khoản Gara' })
+  @ApiOperation({
+    summary: 'Đăng ký tài khoản mới',
+    description:
+      'API đăng ký tài khoản mới cho người dùng với thông tin cá nhân và thiết bị',
+  })
+  @ApiBody({ type: RegisterDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Đăng ký thành công',
+    schema: {
+      example: {
+        statusCode: 201,
+        message: 'Đăng ký thành công',
+        data: {
+          id: 1,
+          phoneNumber: '0898987871',
+          firstName: 'Nguyễn Văn',
+          lastName: 'A',
+          email: 'example@gmail.com',
+          status: 'ACTIVE',
+          createdAt: '2024-01-01T00:00:00.000Z',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Dữ liệu không hợp lệ',
+    schema: {
+      example: {
+        statusCode: 400,
+        message: 'Số điện thoại đã tồn tại',
+        error: 'Bad Request',
+      },
+    },
+  })
   register(@Req() req: Request, @Body() registerDto: RegisterDto) {
     const userAgent = req.headers['user-agent'];
 
@@ -39,7 +73,61 @@ export class AuthsController {
 
   @Throttle({ default: { limit: 5, ttl: seconds(60) } })
   @Post('login')
-  @ApiOperation({ summary: 'API đăng nhập tài khoản' })
+  @ApiOperation({
+    summary: 'Đăng nhập tài khoản',
+    description:
+      'API đăng nhập vào hệ thống với số điện thoại và mật khẩu. Rate limit: 5 requests/phút',
+  })
+  @ApiBody({ type: LoginDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Đăng nhập thành công',
+    schema: {
+      example: {
+        statusCode: 200,
+        message: 'Đăng nhập thành công',
+        data: {
+          accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+          refreshToken: 'refresh-token-here',
+          user: {
+            id: 1,
+            phoneNumber: '0898987871',
+            firstName: 'Nguyễn Văn',
+            lastName: 'A',
+            email: 'example@gmail.com',
+            role: {
+              id: 1,
+              roleName: 'User',
+              roleCode: 'USER',
+            },
+          },
+          expiresIn: 3600,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Thông tin đăng nhập không chính xác',
+    schema: {
+      example: {
+        statusCode: 401,
+        message: 'Số điện thoại hoặc mật khẩu không chính xác',
+        error: 'Unauthorized',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Quá nhiều yêu cầu đăng nhập',
+    schema: {
+      example: {
+        statusCode: 429,
+        message: 'Quá nhiều yêu cầu. Vui lòng thử lại sau.',
+        error: 'Too Many Requests',
+      },
+    },
+  })
   async login(@Req() req: Request, @Body() loginDto: LoginDto) {
     const userAgent = req.headers['user-agent'];
 
@@ -63,81 +151,18 @@ export class AuthsController {
     summary:
       'API đăng xuất tài khoản khỏi 1 thiết bị - Người dùng cần phải đăng nhập',
   })
-  logout(@Body() logoutDto: LogoutDto) {
+  @UseGuards(JwtAuthGuard)
+  logout(@CurrentUser() user: JwtPayloadUser, @Body() logoutDto: LogoutDto) {
     return this.authsService.logout(logoutDto);
   }
 
-  @Post('logout-all')
-  @ApiOperation({
-    summary: 'API đăng xuất tất cả thiết bị - Người dùng cần phải đăng nhập',
-  })
-  logoutAll(@Body() logoutDto: LogoutDto) {
-    return this.authsService.logoutAll(logoutDto);
-  }
-
   @Throttle({ default: { limit: 5, ttl: seconds(60) } })
+  @UseGuards(JwtAuthGuard)
   @Post('refresh-token')
   @ApiOperation({
     summary: 'API làm mới token - Người dùng cần phải đăng nhập',
   })
   refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authsService.refreshToken(refreshTokenDto);
-  }
-
-  @Get('last-password-change')
-  @ApiOperation({
-    summary:
-      'API lấy thời gian cập nhật mật khẩu gần nhất của người dùng - Người dùng cần phải đăng nhập',
-  })
-  @UseGuards(JwtAuthGuard)
-  getLastPasswordChange(@Req() req: Request) {
-    const accessToken = req.headers['authorization']?.split(' ')[1];
-    return this.authsService.getLastPasswordChange(accessToken);
-  }
-
-  @Patch('change-password')
-  @ApiOperation({
-    summary: 'API thay đổi mật khẩu - Người dùng cần phải đăng nhập',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Thay đổi mật khẩu thành công',
-  })
-  @UseGuards(JwtAuthGuard)
-  changePassword(
-    @Req() req: Request,
-    @Body() changePasswordDto: ChangePasswordDto,
-  ) {
-    const accessToken = req.headers['authorization']?.split(' ')[1];
-    return this.authsService.changePassword(accessToken, changePasswordDto);
-  }
-
-  @Post('logout-device')
-  @ApiOperation({
-    summary: 'API đăng xuất thiết bị từ xa - Người dùng cần phải đăng nhập',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Đăng xuất thiết bị thành công',
-  })
-  @UseGuards(JwtAuthGuard)
-  logoutDevice(@Req() req: Request, @Body() body: { deviceId: string }) {
-    const accessToken = req.headers['authorization']?.split(' ')[1];
-    return this.authsService.logoutDevice(accessToken, body.deviceId);
-  }
-
-  @Get('active-devices')
-  @ApiOperation({
-    summary:
-      'API lấy danh sách thiết bị đang đăng nhập - Người dùng cần phải đăng nhập',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Lấy danh sách thiết bị thành công',
-  })
-  @UseGuards(JwtAuthGuard)
-  getActiveDevices(@Req() req: Request) {
-    const accessToken = req.headers['authorization']?.split(' ')[1];
-    return this.authsService.getActiveDevices(accessToken);
   }
 }

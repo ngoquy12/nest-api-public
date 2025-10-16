@@ -8,17 +8,17 @@ import { JwtModule } from '@nestjs/jwt';
 import { RedisService } from '../redis/redis.service';
 import { UserSession } from '../users/entities/user-session.entity';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { SessionActiveGuard } from 'src/common/guards/session-active.guard';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { RolesModule } from '../roles/roles.module';
 import { Role } from '../roles/entities/role.entity';
-import { PasswordHistory } from '../password-histories/entities/password-history.entity';
 import { Image } from '../images/entities/image.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, UserSession, Role, PasswordHistory, Image]),
+    TypeOrmModule.forFeature([User, UserSession, Role, Image]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -35,6 +35,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     UsersService,
     RedisService,
     JwtAuthGuard,
+    SessionActiveGuard,
     JwtStrategy,
     RolesModule,
   ],

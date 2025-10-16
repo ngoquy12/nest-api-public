@@ -2,9 +2,12 @@ import { Gender } from 'src/common/enums/gender.enum';
 import { UserStatus } from 'src/modules/users/enums/user-status.enum';
 import { Column, Entity, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { UserSession } from 'src/modules/users/entities/user-session.entity';
-import { PasswordHistory } from 'src/modules/password-histories/entities/password-history.entity';
 import { BaseEntity } from 'src/common/entities/base.entity';
 import { Role } from 'src/modules/roles/entities/role.entity';
+import { Article } from 'src/modules/articles/entities/article.entity';
+import { Comment } from 'src/modules/comments/entities/comment.entity';
+import { Like } from 'src/modules/likes/entities/like.entity';
+import { Cart } from 'src/modules/carts/entities/cart.entity';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -45,6 +48,15 @@ export class User extends BaseEntity {
   @OneToMany(() => UserSession, (userSession) => userSession.user)
   sessions: UserSession[];
 
-  @OneToMany(() => PasswordHistory, (passwordHistory) => passwordHistory.user)
-  passwordHistories: PasswordHistory[];
+  @OneToMany(() => Article, (article) => article.author)
+  articles: Article[];
+
+  @OneToMany(() => Comment, (comment) => comment.user)
+  comments: Comment[];
+
+  @OneToMany(() => Like, (like) => like.user)
+  likes: Like[];
+
+  @OneToMany(() => Cart, (cart) => cart.user)
+  carts: Cart[];
 }

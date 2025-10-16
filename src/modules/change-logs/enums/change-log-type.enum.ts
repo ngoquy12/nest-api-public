@@ -1,7 +1,0 @@
-export enum ChangeLogType {
-  PRODUCT = 'PRODUCT',
-  EMPLOYEE = 'EMPLOYEE',
-  CATEGORY = 'CATEGORY',
-  CUSTOMER = 'CUSTOMER',
-  USER = 'USER',
-}

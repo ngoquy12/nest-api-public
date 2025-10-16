@@ -1,7 +1,8 @@
 import { BaseEntity } from 'src/common/entities/base.entity';
 import { Category } from 'src/modules/categories/entities/category.entity';
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { ProductStatus } from '../enums/product.status.enum';
+import { CartItem } from 'src/modules/carts/entities/cart-item.entity';
 
 @Entity('products')
 export class Product extends BaseEntity {
@@ -32,4 +33,7 @@ export class Product extends BaseEntity {
     default: ProductStatus.ACTIVE,
   })
   productStatus: ProductStatus; // Trạng thái sản phẩm
+
+  @OneToMany(() => CartItem, (cartItem) => cartItem.product)
+  cartItems: CartItem[];
 }

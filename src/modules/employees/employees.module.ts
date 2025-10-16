@@ -9,21 +9,9 @@ import { Position } from '../positions/entities/position.entity';
 import { CloudinaryService } from 'src/services/cloudinary.service';
 import { Image } from '../images/entities/image.entity';
 import { ImagesService } from '../images/services/images.service';
-import { ChangeLogsModule } from '../change-logs/change-logs.module';
-import { PasswordHistory } from '../password-histories/entities/password-history.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      Employee,
-      User,
-      Role,
-      Position,
-      Image,
-      PasswordHistory,
-    ]),
-    ChangeLogsModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Employee, User, Role, Position, Image])],
   controllers: [EmployeesController],
   providers: [EmployeesService, CloudinaryService, ImagesService],
   exports: [TypeOrmModule, EmployeesService],

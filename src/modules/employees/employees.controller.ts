@@ -500,67 +500,7 @@ export class EmployeesController {
       },
     },
   })
-  async removeEmployee(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: JwtPayloadUser,
-  ) {
-    return this.employeesService.removeEmployee(id, user);
-  }
-
-  @Put(':id/restore')
-  @UseGuards(JwtAuthGuard)
-  @Roles(RoleCode.MANAGER)
-  @ApiOperation({
-    summary: 'Khôi phục nhân viên đã xóa',
-    description: `
-      API khôi phục nhân viên đã bị xóa mềm.
-      
-      **Tính năng:**
-      - Khôi phục nhân viên từ trạng thái đã xóa
-      - Xóa đánh dấu deletedAt và deletedBy
-      - Lưu lịch sử khôi phục
-      
-      **Quyền truy cập:** Chỉ quản lý chi nhánh
-      **Lưu ý:** Chỉ có thể khôi phục nhân viên do quản lý hiện tại tạo ra
-    `,
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'ID của nhân viên cần khôi phục',
-    example: 1,
-    type: 'number',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Khôi phục nhân viên thành công',
-    type: BaseResponse,
-    schema: {
-      example: {
-        statusCode: 200,
-        message: 'Khôi phục nhân viên thành công',
-        data: {
-          id: 1,
-          employeeCode: 'NV0001',
-          employeeName: 'Nguyễn Văn Nam',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: 'Không tìm thấy nhân viên hoặc nhân viên chưa bị xóa',
-    schema: {
-      example: {
-        statusCode: 404,
-        message: 'Không tìm thấy nhân viên đã xóa',
-        error: 'Not Found',
-      },
-    },
-  })
-  async restoreEmployee(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: JwtPayloadUser,
-  ) {
-    return this.employeesService.restoreEmployee(id, user);
+  async removeEmployee(@Param('id', ParseIntPipe) id: number) {
+    return this.employeesService.removeEmployee(id);
   }
 }

@@ -8,7 +8,6 @@ import { UserSession } from '../users/entities/user-session.entity';
 import { ConfigModule } from '@nestjs/config';
 import { Image } from '../images/entities/image.entity';
 import { CloudinaryService } from 'src/services/cloudinary.service';
-import { ChangeLogsModule } from '../change-logs/change-logs.module';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthsModule } from '../auths/auths.module';
 
@@ -17,7 +16,6 @@ import { AuthsModule } from '../auths/auths.module';
     TypeOrmModule.forFeature([User, UserSession, Image]),
     AuthsModule,
     ConfigModule,
-    ChangeLogsModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'your-secret-key',
       signOptions: { expiresIn: '24h' },

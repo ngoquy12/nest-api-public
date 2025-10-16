@@ -13,11 +13,12 @@ import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags, ApiResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { SearchCategoryDto } from './dto/search-category.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { JwtPayloadUser } from '../auths/interfaces/jwt-payload-user';
 
+@ApiTags('Quản lý danh mục (Categories)')
 @ApiBearerAuth()
 @Controller({ version: '1' })
 export class CategoriesController {

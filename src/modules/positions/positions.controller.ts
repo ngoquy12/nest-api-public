@@ -12,13 +12,19 @@ import {
 import { PositionsService } from './positions.service';
 import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
-import { ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { SearchPositionDto } from './dto/search-position.dto';
 import { PositionStatus } from './enums/position.enum';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RoleCode } from 'src/common/enums/role-code.enum';
 
+@ApiTags('Positions - Quản lý vị trí làm việc')
 @Controller({ version: '1' })
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()

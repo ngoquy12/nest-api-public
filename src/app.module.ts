@@ -10,11 +10,15 @@ import { EmployeesModule } from './modules/employees/employees.module';
 import { PositionsModule } from './modules/positions/positions.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { CategoriesModule } from './modules/categories/categories.module';
-import { ChangeLogsModule } from './modules/change-logs/change-logs.module';
 import { SeederRunner } from './seeds/seeder-runner';
 import { RoleSeederService } from './seeds/role.seeder';
 import { AccountsModule } from './modules/accounts/accounts.module';
 import { ProductsModule } from './modules/products/products.module';
+import { ArticleCategoriesModule } from './modules/article-categories/article-categories.module';
+import { ArticlesModule } from './modules/articles/articles.module';
+import { CommentsModule } from './modules/comments/comments.module';
+import { LikesModule } from './modules/likes/likes.module';
+import { CartsModule } from './modules/carts/carts.module';
 import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
@@ -43,9 +47,13 @@ import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     PositionsModule,
     RolesModule,
     EmployeesModule,
-    ChangeLogsModule,
     AccountsModule,
     ProductsModule,
+    ArticleCategoriesModule,
+    ArticlesModule,
+    CommentsModule,
+    LikesModule,
+    CartsModule,
   ],
   providers: [
     RoleSeederService,

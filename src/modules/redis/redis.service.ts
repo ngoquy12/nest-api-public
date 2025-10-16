@@ -23,4 +23,21 @@ export class RedisService {
   async del(key: string): Promise<void> {
     await this.redisClient.del(key);
   }
+
+  async exists(key: string): Promise<boolean> {
+    const result = await this.redisClient.exists(key);
+    return result === 1;
+  }
+
+  async setex(key: string, ttl: number, value: string): Promise<void> {
+    await this.redisClient.setex(key, ttl, value);
+  }
+
+  async keys(pattern: string): Promise<string[]> {
+    return this.redisClient.keys(pattern);
+  }
+
+  async delMultiple(...keys: string[]): Promise<number> {
+    return this.redisClient.del(...keys);
+  }
 }

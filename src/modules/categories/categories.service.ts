@@ -15,9 +15,6 @@ import {
   BaseResponse,
   PaginatedResponse,
 } from 'src/common/responses/base-response';
-import { ChangeLogsService } from '../change-logs/change-logs.service';
-import { ChangeLogType } from '../change-logs/enums/change-log-type.enum';
-import { ChangeLogAction } from '../change-logs/enums/change-log-action.enum';
 import { JwtPayloadUser } from '../auths/interfaces/jwt-payload-user';
 import { CategoryResponse } from './interfaces/category.interface';
 
@@ -26,8 +23,6 @@ export class CategoriesService {
   constructor(
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
-
-    private readonly changeLogService: ChangeLogsService,
   ) {}
 
   // Thêm mới danh mục
@@ -64,24 +59,6 @@ export class CategoriesService {
     });
 
     const savedCategory = await this.categoryRepository.save(newCategory);
-
-    // Tạo dữ liệu mới để lưu lịch sử thay đổi
-    const newCategoryData = {
-      categoryName: savedCategory.categoryName,
-      categoryDescription: savedCategory.categoryDescription,
-      categoryStatus: savedCategory.categoryStatus,
-      createdBy: savedCategory.createdBy,
-    };
-
-    // Lưu lịch sử thay đổi
-    await this.changeLogService.logChange(
-      ChangeLogAction.CREATE,
-      ChangeLogType.CATEGORY,
-      savedCategory.id,
-      null,
-      newCategoryData,
-      user.id,
-    );
 
     const categoryResponse = {
       id: savedCategory.id,
@@ -214,17 +191,6 @@ export class CategoriesService {
       }
     }
 
-    // Tạo bản sao danh mục cũ để lưu lịch sử thay đổi (sau khi đã kiểm tra tồn tại)
-    const oldCategoryData = {
-      id: category.id,
-      categoryName: category.categoryName,
-      categoryDescription: category.categoryDescription,
-      categoryStatus:
-        category.categoryStatus === CategoryStatus.ACTIVE
-          ? 'Đang hoạt động'
-          : 'Tạm dừng hoạt động',
-    };
-
     // Cập nhật thông tin danh mục
     Object.assign(category, {
       ...updateCategoryDto,
@@ -232,27 +198,6 @@ export class CategoriesService {
     });
 
     const updatedCategory = await this.categoryRepository.save(category);
-
-    // Tạo dữ liệu mới để lưu lịch sử
-    const newCategoryData = {
-      id: updatedCategory.id,
-      categoryName: updatedCategory.categoryName,
-      categoryDescription: updatedCategory.categoryDescription,
-      categoryStatus:
-        updatedCategory.categoryStatus === CategoryStatus.ACTIVE
-          ? 'Đang hoạt động'
-          : 'Tạm dừng hoạt động',
-    };
-
-    // Lưu lịch sử thay đổi với dữ liệu chi tiết
-    await this.changeLogService.logChange(
-      ChangeLogAction.UPDATE,
-      ChangeLogType.CATEGORY,
-      category.id,
-      oldCategoryData,
-      newCategoryData,
-      user.id,
-    );
 
     // Trả về thông tin danh mục đã cập nhật
     const updatedCategoryResponse = {
@@ -294,27 +239,8 @@ export class CategoriesService {
       );
     }
 
-    // Lưu thông tin danh mục trước khi xóa để ghi log
-    const deletedCategoryData = {
-      id: category.id,
-      categoryName: category.categoryName,
-      categoryDescription: category.categoryDescription,
-      categoryStatus: category.categoryStatus,
-      deletedAt: new Date().toISOString(),
-    };
-
     // Thực hiện xóa mềm
     await this.categoryRepository.softDelete(categoryId);
-
-    // Lưu lịch sử xóa
-    await this.changeLogService.logChange(
-      ChangeLogAction.DELETE,
-      ChangeLogType.CATEGORY,
-      categoryId,
-      deletedCategoryData,
-      null,
-      user.id,
-    );
 
     return new BaseResponse(HttpStatus.OK, 'Xóa danh mục thành công', null);
   }

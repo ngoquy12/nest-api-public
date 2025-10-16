@@ -6,14 +6,9 @@ import { Category } from './entities/category.entity';
 import { User } from '../users/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
-import { ChangeLog } from '../change-logs/entities/change-log.entity';
-import { ChangeLogsModule } from '../change-logs/change-logs.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Category, User, ChangeLog]),
-    ChangeLogsModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Category, User])],
   controllers: [CategoriesController],
   providers: [CategoriesService, JwtService, UsersService],
 })

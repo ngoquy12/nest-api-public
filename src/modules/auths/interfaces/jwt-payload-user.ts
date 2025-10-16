@@ -1,11 +1,10 @@
-import { RoleCode } from 'src/common/enums/role-code.enum';
-
 export interface JwtPayloadUser {
-  id: number;
+  sub: number; // JWT standard field
+  id: number; // Alias for sub
+  phoneNumber?: string;
+  role: string; // Role name from JWT
+  roleCode?: string; // Role code from JWT
+  status?: string;
   deviceId?: string;
-  role: {
-    id: number;
-    name: string;
-    code: RoleCode;
-  };
+  sessionId?: number;
 }

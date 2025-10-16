@@ -16,9 +16,6 @@ import {
   BaseResponse,
   PaginatedResponse,
 } from 'src/common/responses/base-response';
-import { ChangeLogsService } from '../change-logs/change-logs.service';
-import { ChangeLogType } from '../change-logs/enums/change-log-type.enum';
-import { ChangeLogAction } from '../change-logs/enums/change-log-action.enum';
 import { JwtPayloadUser } from '../auths/interfaces/jwt-payload-user';
 import { SearchAndPagingEmployeeDto } from './dto/search-employee.dto';
 import * as dayjs from 'dayjs';
@@ -33,7 +30,6 @@ export class EmployeesService {
     private readonly positionRepository: Repository<Position>,
 
     private readonly dataSource: DataSource,
-    private readonly changeLogService: ChangeLogsService,
   ) {}
 
   // Thêm mới nhân viên
@@ -353,18 +349,6 @@ export class EmployeesService {
         }
       }
 
-      // Lấy thông tin cũ để lưu lịch sử
-      const oldEmployeeInfo = {
-        employeeCode: employee.employeeCode,
-        employeeName: employee.employeeName,
-        phoneNumber: employee.phoneNumber,
-        gender: employee.gender === Gender.MALE ? 'Nam' : 'Nữ',
-        dateBirth: employee.dateBirth
-          ? dayjs(employee.dateBirth).format('DD/MM/YYYY')
-          : null,
-        positionName: employee.position?.positionName || 'Chưa có vị trí',
-      };
-
       // Cập nhật vị trí nếu có
       if (updateEmployeeDto.positionId) {
         const position = await this.positionRepository.findOne({
@@ -388,29 +372,6 @@ export class EmployeesService {
       });
 
       const updatedEmployee = await queryRunner.manager.save(employee);
-
-      // Lấy thông tin mới để lưu lịch sử
-      const newEmployeeInfo = {
-        employeeCode: updateEmployeeDto.employeeCode,
-        employeeName: updateEmployeeDto.employeeName,
-        phoneNumber: updateEmployeeDto.phoneNumber,
-        gender: updateEmployeeDto.gender === Gender.MALE ? 'Nam' : 'Nữ',
-        dateBirth: updateEmployeeDto.dateBirth
-          ? dayjs(updateEmployeeDto.dateBirth).format('DD/MM/YYYY')
-          : null,
-        positionName:
-          updatedEmployee.position?.positionName || 'Chưa có vị trí',
-      };
-
-      // Lưu lịch sử thay đổi
-      await this.changeLogService.logChange(
-        ChangeLogAction.UPDATE,
-        ChangeLogType.EMPLOYEE,
-        employee.id,
-        oldEmployeeInfo,
-        newEmployeeInfo,
-        currentUserId,
-      );
 
       await queryRunner.commitTransaction();
 
@@ -443,7 +404,7 @@ export class EmployeesService {
   }
 
   // Xóa mềm thông tin nhân viên
-  async removeEmployee(id: number, user: JwtPayloadUser) {
+  async removeEmployee(id: number) {
     const employee = await this.employeeRepository.findOne({
       where: {
         id,
@@ -458,56 +419,6 @@ export class EmployeesService {
     // Xóa mềm nhân viên
     await this.employeeRepository.softDelete(id);
 
-    // Lưu lịch sử xóa
-    await this.changeLogService.logChange(
-      ChangeLogAction.DELETE,
-      ChangeLogType.EMPLOYEE,
-      employee.id,
-      {
-        employeeCode: employee.employeeCode,
-        employeeName: employee.employeeName,
-      },
-      null,
-      user.id,
-    );
-
     return new BaseResponse(HttpStatus.OK, 'Xóa nhân viên thành công', null);
-  }
-
-  // Khôi phục nhân viên đã xóa
-  async restoreEmployee(id: number, user: JwtPayloadUser) {
-    const employee = await this.employeeRepository.findOne({
-      where: {
-        id,
-        deletedAt: Not(IsNull()),
-      },
-      withDeleted: true,
-    });
-
-    if (!employee) {
-      throw new NotFoundException('Không tìm thấy nhân viên đã xóa');
-    }
-
-    // Khôi phục nhân viên
-    await this.employeeRepository.restore(id);
-
-    // Lưu lịch sử khôi phục
-    await this.changeLogService.logChange(
-      ChangeLogAction.RESTORE,
-      ChangeLogType.EMPLOYEE,
-      employee.id,
-      null,
-      {
-        employeeCode: employee.employeeCode,
-        employeeName: employee.employeeName,
-      },
-      user.id,
-    );
-
-    return new BaseResponse(HttpStatus.OK, 'Khôi phục nhân viên thành công', {
-      id: employee.id,
-      employeeCode: employee.employeeCode,
-      employeeName: employee.employeeName,
-    });
   }
 }

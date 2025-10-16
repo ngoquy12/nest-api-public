@@ -21,6 +21,7 @@ import {
   ApiBody,
   ApiConsumes,
   ApiOperation,
+  ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
@@ -30,6 +31,7 @@ import { JwtPayloadUser } from '../auths/interfaces/jwt-payload-user';
 import { SearchAndPagingProductDto } from './dto/search-product.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 
+@ApiTags('Products - Quản lý sản phẩm')
 @Controller({ version: '1' })
 @ApiBearerAuth()
 export class ProductsController {
@@ -170,7 +172,7 @@ export class ProductsController {
       **Quyền truy cập:** Chỉ quản lý chi nhánh
     `,
   })
-  deleteProduct(@Param('id') id: string, @CurrentUser() user: JwtPayloadUser) {
-    return this.productsService.deleteProduct(+id, user);
+  deleteProduct(@Param('id') id: string) {
+    return this.productsService.deleteProduct(+id);
   }
 }

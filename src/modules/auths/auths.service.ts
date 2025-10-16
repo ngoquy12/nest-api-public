@@ -22,8 +22,6 @@ import { compare } from 'bcrypt';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ConfigService } from '@nestjs/config';
 import { Role } from '../roles/entities/role.entity';
-import { ChangePasswordDto } from './dto/change-password.dto';
-import { PasswordHistory } from '../password-histories/entities/password-history.entity';
 import { Image } from '../images/entities/image.entity';
 import { BaseResponse } from 'src/common/responses/base-response';
 import { RoleCode } from 'src/common/enums/role-code.enum';
@@ -38,9 +36,6 @@ export class AuthsService {
 
     @InjectRepository(Role)
     private roleRepository: Repository<Role>,
-
-    @InjectRepository(PasswordHistory)
-    private readonly passwordHistoryRepository: Repository<PasswordHistory>,
 
     @InjectRepository(Image)
     private readonly imageRepository: Repository<Image>,
@@ -77,10 +72,16 @@ export class AuthsService {
       );
     }
 
-    // Lấy ra id của role có tên là GARAGE_OWNER
+    // Lấy ra id của role CUSTOMER (role mặc định cho user mới đăng ký)
     const role = await this.roleRepository.findOne({
-      where: { roleCode: RoleCode.MANAGER },
+      where: { roleCode: RoleCode.CUSTOMER },
     });
+
+    if (!role) {
+      throw new BadRequestException(
+        'Không tìm thấy role CUSTOMER. Vui lòng liên hệ quản trị viên.',
+      );
+    }
 
     // Mã hóa mật khẩu
     const hashedPassword = await hashPassword(password);
@@ -101,24 +102,15 @@ export class AuthsService {
       relations: ['role'],
     });
 
-    // Lưu lại lịch sử thêm mật khẩu
-    const passwordHistory = this.passwordHistoryRepository.create({
-      user: savedUser,
-      hashedPassword,
-    });
-
-    await this.passwordHistoryRepository.save(passwordHistory);
-
     // Tạo Access Token (15 phút)
     const payload = {
-      sub: savedUser.id,
+      id: savedUser.id,
+      phoneNumber: savedUser.phoneNumber,
       role: userWithRole.role?.roleName,
-      status: savedUser.status,
+      roleCode: userWithRole.role?.roleCode,
+      deviceId: deviceId,
+      sessionId: null, // Sẽ được cập nhật sau khi tạo session
     };
-
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get<string>('JWT_EXPIRES_IN_SHORT'),
-    });
 
     // Tạo Refresh Token (7 ngày)
     const refreshToken = this.jwtService.sign(
@@ -130,7 +122,7 @@ export class AuthsService {
     const hashedRefreshToken = await hashToken(refreshToken);
 
     // Lưu phiên đăng nhập vào `user_sessions`
-    await this.userSessionRepository.save({
+    const userSession = await this.userSessionRepository.save({
       user: savedUser,
       refreshToken: hashedRefreshToken,
       deviceInfo: userAgent || 'Thiết bị không xác định',
@@ -139,13 +131,24 @@ export class AuthsService {
       isRemembered: false,
     });
 
+    // Cập nhật sessionId trong payload và tạo lại accessToken
+    const updatedPayload = {
+      ...payload,
+      sessionId: userSession.id,
+    };
+
+    const finalAccessToken = this.jwtService.sign(updatedPayload, {
+      expiresIn: this.configService.get<string>('JWT_EXPIRES_IN_SHORT'),
+    });
+
     return new BaseResponse(
       HttpStatus.CREATED,
       'Đăng ký tài khoản thành công',
       {
-        accessToken,
+        accessToken: finalAccessToken,
         refreshToken,
         user: {
+          id: savedUser.id,
           firstName: newUser.firstName,
           lastName: newUser.lastName,
           phoneNumber: newUser.phoneNumber,
@@ -154,7 +157,13 @@ export class AuthsService {
           dateOfBirth: newUser.dateBirth,
           address: newUser.address,
           gender: newUser.gender,
+          role: {
+            id: userWithRole.role?.id,
+            roleName: userWithRole.role?.roleName,
+            roleCode: userWithRole.role?.roleCode,
+          },
         },
+        expiresIn: this.configService.get<string>('JWT_EXPIRES_IN_SHORT'),
       },
     );
   }
@@ -324,43 +333,6 @@ export class AuthsService {
     }
   }
 
-  // Đăng xuất tất cả thiết bị
-  async logoutAll(logoutDto: LogoutDto) {
-    const { refreshToken } = logoutDto;
-    try {
-      // Giải mã refreshToken để lấy `userId`
-      const decoded = this.jwtService.verify(refreshToken);
-
-      // Lấy userId từ JWT
-      const userId = decoded.sub;
-
-      // Lấy danh sách sessions active để logout
-      const sessionsToLogout = await this.userSessionRepository.find({
-        where: { user: { id: userId }, isActive: true },
-      });
-
-      // Đánh dấu tất cả sessions là không active
-      const now = new Date();
-      sessionsToLogout.forEach((session) => {
-        session.isActive = false;
-        session.logoutAt = now;
-        session.updatedAt = now;
-      });
-
-      await this.userSessionRepository.save(sessionsToLogout);
-
-      return new BaseResponse(
-        HttpStatus.OK,
-        'Đăng xuất khỏi tất cả thiết bị thành công',
-        null,
-      );
-    } catch (error) {
-      throw new UnauthorizedException(
-        'Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại',
-      );
-    }
-  }
-
   // Làm mới token
   async refreshToken(
     refreshTokenDto: RefreshTokenDto,
@@ -422,211 +394,6 @@ export class AuthsService {
       return new BaseResponse(HttpStatus.OK, 'Làm mới token thành công', {
         accessToken: newAccessToken,
       });
-    } catch (error) {
-      throw new UnauthorizedException(
-        'Phiên đăng nhập không hợp lệ hoặc đã hết hạn',
-      );
-    }
-  }
-
-  // Thay đổi mật khẩu
-  async changePassword(
-    accessToken: string,
-    changePasswordDto: ChangePasswordDto,
-  ) {
-    const { oldPassword, newPassword } = changePasswordDto;
-
-    // Giải mã accessToken để lấy userId
-    const decoded = this.jwtService.verify(accessToken);
-    const userId = decoded.sub;
-
-    // Tìm người dùng dựa trên userId
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-    });
-
-    // Kiểm tra mật khẩu cũ
-    if (!user || !(await comparePassword(oldPassword, user.password))) {
-      throw new BadRequestException('Mật khẩu cũ không chính xác');
-    }
-
-    // Lấy lịch sử các mật khẩu trước đây
-    const oldPasswords = await this.passwordHistoryRepository.find({
-      where: { user: { id: userId } },
-      order: { createdAt: 'DESC' },
-      take: 5, // kiểm tra 5 mật khẩu gần nhất
-    });
-
-    // Kiểm tra mật khẩu mới có trùng với bất kỳ mật khẩu cũ nào không
-    for (const old of oldPasswords) {
-      const isSame = await comparePassword(newPassword, old.hashedPassword);
-      if (isSame) {
-        throw new BadRequestException(
-          'Mật khẩu này đã được sử dụng trước đây. Vui lòng chọn mật khẩu khác',
-        );
-      }
-    }
-
-    // Mã hóa mật khẩu mới
-    const hashedPassword = await hashPassword(newPassword);
-
-    // Cập nhật mật khẩu mới cho người dùng
-    user.password = hashedPassword;
-    await this.userRepository.save(user);
-
-    // Lưu lại lịch sử mật khẩu mới
-    const passwordHistory = this.passwordHistoryRepository.create({
-      user,
-      hashedPassword,
-    });
-
-    await this.passwordHistoryRepository.save(passwordHistory);
-
-    //
-    return new BaseResponse(HttpStatus.OK, 'Tạo mật khẩu mới thành công', null);
-  }
-
-  // Lấy thời gian cập nhật mật khẩu gần nhất của người dùng
-  async getLastPasswordChange(accessToken: string) {
-    try {
-      // Giải mã accessToken để lấy userId
-      const decoded = this.jwtService.verify(accessToken);
-      const userId = decoded.sub;
-
-      // Tìm người dùng dựa trên userId
-      const user = await this.userRepository.findOne({
-        where: { id: userId },
-        relations: ['passwordHistories'],
-      });
-
-      if (!user) {
-        throw new BadRequestException('Không tìm thấy tài khoản');
-      }
-
-      // Lấy thời gian cập nhật mật khẩu gần nhất
-      const lastPasswordChange = await this.passwordHistoryRepository.findOne({
-        where: { user: { id: userId } },
-        order: { createdAt: 'DESC' },
-      });
-
-      return new BaseResponse(
-        HttpStatus.OK,
-        'Lấy thời gian cập nhật mật khẩu thành công',
-        {
-          lastPasswordChangedAt: lastPasswordChange?.createdAt,
-        },
-      );
-    } catch (error) {
-      throw new UnauthorizedException(
-        'Phiên đăng nhập không hợp lệ hoặc đã hết hạn',
-      );
-    }
-  }
-
-  // Đăng xuất thiết bị từ xa
-  async logoutDevice(accessToken: string, deviceId: string) {
-    try {
-      // Giải mã accessToken để lấy userId
-      const decoded = this.jwtService.verify(accessToken);
-      const userId = decoded.sub;
-      const currentDeviceId = decoded.deviceId;
-
-      // Không cho phép đăng xuất thiết bị hiện tại
-      if (deviceId === currentDeviceId) {
-        throw new BadRequestException(
-          'Không thể đăng xuất khỏi thiết bị đang sử dụng hiện tại',
-        );
-      }
-
-      // Tìm session cần đăng xuất
-      const session = await this.userSessionRepository.findOne({
-        where: {
-          user: { id: userId },
-          deviceId: deviceId,
-          isActive: true,
-        },
-      });
-
-      if (!session) {
-        throw new BadRequestException(
-          'Không tìm thấy thiết bị này hoặc thiết bị đã được đăng xuất',
-        );
-      }
-
-      // Đánh dấu session là không active
-      session.isActive = false;
-      session.logoutAt = new Date();
-      session.updatedAt = new Date();
-      await this.userSessionRepository.save(session);
-
-      return new BaseResponse(HttpStatus.OK, 'Đăng xuất thiết bị thành công', {
-        deviceId,
-        logoutAt: session.logoutAt,
-      });
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      console.error('Error in logoutDevice:', error);
-      throw new UnauthorizedException(
-        'Phiên đăng nhập không hợp lệ hoặc đã hết hạn',
-      );
-    }
-  }
-
-  // Lấy danh sách thiết bị đang đăng nhập
-  async getActiveDevices(accessToken: string) {
-    try {
-      // Giải mã accessToken để lấy userId
-      const decoded = this.jwtService.verify(accessToken);
-      const userId = decoded.sub;
-      const currentDeviceId = decoded.deviceId;
-
-      // Lấy danh sách sessions đang active
-      const activeSessions = await this.userSessionRepository.find({
-        where: { user: { id: userId }, isActive: true },
-        order: { lastSeenAt: 'DESC' },
-      });
-
-      const now = new Date();
-      const devices = activeSessions.map((session) => {
-        let status = 'offline';
-
-        if (session.lastSeenAt) {
-          const lastSeen = new Date(session.lastSeenAt);
-          const secondsSinceLastSeen =
-            (now.getTime() - lastSeen.getTime()) / 1000;
-
-          if (secondsSinceLastSeen < 10) {
-            status = 'online';
-          } else if (secondsSinceLastSeen < 24 * 60 * 60) {
-            status = 'offline';
-          } else {
-            status = 'inactive';
-          }
-        }
-
-        return {
-          deviceId: session.deviceId,
-          deviceInfo: session.deviceInfo,
-          ipAddress: session.ipAddress,
-          isCurrentDevice: session.deviceId === currentDeviceId,
-          status,
-          lastSeenAt: session.lastSeenAt,
-          loginAt: session.createdAt,
-          isRemembered: session.isRemembered,
-        };
-      });
-
-      return new BaseResponse(
-        HttpStatus.OK,
-        'Lấy danh sách thiết bị thành công',
-        {
-          devices,
-          totalDevices: devices.length,
-          maxDevices: 3,
-        },
-      );
     } catch (error) {
       throw new UnauthorizedException(
         'Phiên đăng nhập không hợp lệ hoặc đã hết hạn',

@@ -5,16 +5,14 @@ import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { json, urlencoded } from 'body-parser';
 import { Request, Response } from 'express';
-// import { SeederRunner } from './seeds/seeder-runner';
+import { SeederRunner } from './seeds/seeder-runner';
 
 async function bootstrap() {
   const PORT = process.env.APP_PORT || 3000;
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // const seeder = app.get(SeederRunner);
-  // await seeder.runAllSeeders();
-
-  // await app.close();
+  const seeder = app.get(SeederRunner);
+  await seeder.runAllSeeders();
 
   app.enableCors({
     origin: '*',

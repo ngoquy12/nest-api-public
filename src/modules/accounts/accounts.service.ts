@@ -14,11 +14,8 @@ import { HttpStatus } from '@nestjs/common';
 import { Image } from '../images/entities/image.entity';
 import { CloudinaryService } from 'src/services/cloudinary.service';
 import { TypeImage } from 'src/common/enums/type-image.enum';
-import { ChangeLogsService } from '../change-logs/change-logs.service';
-import { ChangeLogType } from '../change-logs/enums/change-log-type.enum';
-import { ChangeLogAction } from '../change-logs/enums/change-log-action.enum';
-import { EnumConverterUtil } from 'src/common/utils/enum-converter.util';
-import * as dayjs from 'dayjs';
+import { ChangePasswordDto } from '../auths/dto/change-password.dto';
+import { comparePassword, hashPassword } from 'src/common/utils/hashing.util';
 
 @Injectable()
 export class AccountsService {
@@ -36,7 +33,6 @@ export class AccountsService {
 
     private readonly cloudinaryService: CloudinaryService,
     private readonly dataSource: DataSource,
-    private readonly changeLogsService: ChangeLogsService,
   ) {}
 
   async getProfile(user: JwtPayloadUser) {
@@ -198,32 +194,6 @@ export class AccountsService {
     await queryRunner.startTransaction();
 
     try {
-      // ✅ BƯỚC 1: LƯU OLD DATA TRƯỚC KHI UPDATE
-      const oldAvatar = await queryRunner.manager.findOne(Image, {
-        where: {
-          refId: userEntity.id,
-          type: TypeImage.USER,
-          deletedAt: null,
-        },
-      });
-
-      const oldUserData = {
-        fullName:
-          userEntity.firstName && userEntity.lastName
-            ? `${userEntity.firstName} ${userEntity.lastName}`
-            : null,
-        email: userEntity.email,
-        phoneNumber: userEntity.phoneNumber,
-        dateBirth: userEntity.dateBirth
-          ? dayjs(userEntity.dateBirth).format('DD/MM/YYYY')
-          : null,
-        gender: userEntity.gender
-          ? EnumConverterUtil.convertGender(userEntity.gender)
-          : null,
-        address: userEntity.address,
-        avatar: oldAvatar?.url || null,
-      };
-
       // ✅ BƯỚC 2: CÂP NHẬT THÔNG TIN USER
       const updateData: any = {};
 
@@ -275,34 +245,6 @@ export class AccountsService {
         });
         avatarUrl = currentAvatar?.url || null;
       }
-
-      // ✅ BƯỚC 4: LƯU NEW DATA SAU KHI UPDATE
-      const newUserData = {
-        fullName:
-          userEntity.firstName && userEntity.lastName
-            ? `${userEntity.firstName} ${userEntity.lastName}`
-            : null,
-        email: userEntity.email,
-        phoneNumber: userEntity.phoneNumber,
-        dateBirth: userEntity.dateBirth
-          ? dayjs(userEntity.dateBirth).format('DD/MM/YYYY')
-          : null,
-        gender: userEntity.gender
-          ? EnumConverterUtil.convertGender(userEntity.gender)
-          : null,
-        address: userEntity.address,
-        avatar: avatarUrl,
-      };
-
-      // Lưu change logs nếu có sự thay đổi
-      await this.changeLogsService.logChange(
-        ChangeLogAction.UPDATE,
-        ChangeLogType.USER,
-        userEntity.id,
-        oldUserData,
-        newUserData,
-        user.id,
-      );
 
       // Commit transaction
       await queryRunner.commitTransaction();
@@ -391,6 +333,130 @@ export class AccountsService {
       HttpStatus.OK,
       'Lấy lịch sử đăng nhập thành công',
       result,
+    );
+  }
+
+  // Đổi mật khẩu
+  async changePassword(
+    user: JwtPayloadUser,
+    changePasswordDto: ChangePasswordDto,
+  ): Promise<BaseResponse<null>> {
+    const { oldPassword: currentPassword, newPassword } = changePasswordDto;
+
+    // Lấy thông tin user từ database
+    const userEntity = await this.userRepository.findOne({
+      where: { id: user.id },
+    });
+
+    if (!userEntity) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    // Kiểm tra mật khẩu hiện tại
+    const isCurrentPasswordValid = await comparePassword(
+      currentPassword,
+      userEntity.password,
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new BadRequestException('Mật khẩu hiện tại không chính xác');
+    }
+
+    // Hash mật khẩu mới
+    const hashedNewPassword = await hashPassword(newPassword);
+
+    // Cập nhật mật khẩu
+    await this.userRepository.update(user.id, {
+      password: hashedNewPassword,
+    });
+
+    return new BaseResponse(HttpStatus.OK, 'Đổi mật khẩu thành công', null);
+  }
+
+  // Đăng xuất thiết bị từ xa
+  async logoutDevice(
+    user: JwtPayloadUser,
+    deviceId: string,
+  ): Promise<BaseResponse<null>> {
+    const session = await this.userSessionRepository.findOne({
+      where: {
+        user: { id: user.id },
+        deviceId: deviceId,
+        isActive: true,
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Không tìm thấy thiết bị');
+    }
+
+    // Đánh dấu session là không hoạt động
+    await this.userSessionRepository.update(session.id, {
+      isActive: false,
+      logoutAt: new Date(),
+    });
+
+    return new BaseResponse(
+      HttpStatus.OK,
+      'Đăng xuất thiết bị thành công',
+      null,
+    );
+  }
+
+  // Đăng xuất tất cả thiết bị khác
+  async logoutAllOtherDevices(
+    user: JwtPayloadUser,
+  ): Promise<BaseResponse<null>> {
+    // Lấy session hiện tại (từ JWT token)
+    const currentDeviceId = user.deviceId;
+
+    // Đăng xuất tất cả session khác ngoài session hiện tại
+    await this.userSessionRepository.update(
+      {
+        user: { id: user.id },
+        isActive: true,
+        deviceId: Not(currentDeviceId),
+      },
+      {
+        isActive: false,
+        logoutAt: new Date(),
+      },
+    );
+
+    return new BaseResponse(
+      HttpStatus.OK,
+      'Đăng xuất tất cả thiết bị khác thành công',
+      null,
+    );
+  }
+
+  // Lấy danh sách thiết bị đang đăng nhập
+  async getActiveDevices(user: JwtPayloadUser): Promise<BaseResponse<any>> {
+    const activeSessions = await this.userSessionRepository.find({
+      where: {
+        user: { id: user.id },
+        isActive: true,
+      },
+      order: {
+        lastSeenAt: 'DESC',
+      },
+    });
+
+    const devices = activeSessions.map((session) => ({
+      id: session.id,
+      deviceId: session.deviceId,
+      deviceName: session.deviceInfo,
+      ipAddress: session.ipAddress,
+      userAgent: session.deviceInfo,
+      isActive: session.isActive,
+      lastLoginAt: session.lastSeenAt,
+      createdAt: session.createdAt,
+    }));
+
+    return new BaseResponse(
+      HttpStatus.OK,
+      'Lấy danh sách thiết bị thành công',
+      devices,
     );
   }
 }

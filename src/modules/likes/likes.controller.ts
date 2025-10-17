@@ -19,8 +19,8 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 
-@ApiTags('Likes')
-@Controller('likes')
+@ApiTags('Quản lý like (Likes)')
+@Controller({ version: '1' })
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class LikesController {

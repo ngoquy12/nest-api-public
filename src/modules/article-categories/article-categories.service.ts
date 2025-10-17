@@ -33,9 +33,17 @@ export class ArticleCategoriesService {
 
     const { name, description, image } = createArticleCategoryDto as any;
 
+    const safeName = typeof name === 'string' ? name.trim() : '';
+    if (!safeName) {
+      throw new BadRequestException('Tên danh mục là bắt buộc');
+    }
+    const safeDescription =
+      typeof description === 'string' ? description.trim() : undefined;
+    const safeImage = typeof image === 'string' ? image.trim() : undefined;
+
     // Kiểm tra trùng tên
     const existingCategory = await this.articleCategoryRepository.findOne({
-      where: { name: name.trim() },
+      where: { name: safeName },
     });
 
     if (existingCategory) {
@@ -46,9 +54,9 @@ export class ArticleCategoriesService {
 
     // Tạo và lưu danh mục
     const newCategory = this.articleCategoryRepository.create({
-      name,
-      description,
-      image,
+      name: safeName,
+      description: safeDescription,
+      image: safeImage,
       createdBy: id,
     });
 

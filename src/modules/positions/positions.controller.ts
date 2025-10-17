@@ -22,7 +22,7 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { SearchPositionDto } from './dto/search-position.dto';
 import { PositionStatus } from './enums/position.enum';
 
-@ApiTags('Positions - Quản lý vị trí làm việc')
+@ApiTags('Quản lý vị trí làm việc (Positions)')
 @Controller({ version: '1' })
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()

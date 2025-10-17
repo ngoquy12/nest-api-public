@@ -31,7 +31,7 @@ import { JwtPayloadUser } from '../auths/interfaces/jwt-payload-user';
 import { SearchAndPagingProductDto } from './dto/search-product.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 
-@ApiTags('Products - Quản lý sản phẩm')
+@ApiTags('Quản lý sản phẩm (Products)')
 @Controller({ version: '1' })
 @ApiBearerAuth()
 export class ProductsController {

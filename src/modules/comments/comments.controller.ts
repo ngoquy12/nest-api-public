@@ -23,7 +23,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 
-@ApiTags('Comments')
+@ApiTags('Quản lý bình luận (Comments)')
 @Controller({ version: '1' })
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()

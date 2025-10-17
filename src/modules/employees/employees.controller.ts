@@ -33,7 +33,7 @@ import {
   PaginatedResponse,
 } from 'src/common/responses/base-response';
 
-@ApiTags('Employees - Quản lý nhân viên')
+@ApiTags('Quản lý nhân viên (Employees)')
 @ApiBearerAuth()
 @Controller({ version: '1' })
 export class EmployeesController {

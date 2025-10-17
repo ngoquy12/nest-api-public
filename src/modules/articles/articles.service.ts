@@ -148,6 +148,46 @@ export class ArticlesService {
     );
   }
 
+  // Lấy tất cả bài viết (không tìm kiếm, không phân trang)
+  async getAllArticles() {
+    const articles = await this.articleRepository.find({
+      relations: ['category', 'author'],
+      order: { createdAt: 'DESC' },
+    });
+
+    const data = articles.map((article) => ({
+      id: article.id,
+      title: article.title,
+      content: article.content,
+      image: article.image,
+      likeCount: article.likeCount,
+      commentCount: article.commentCount,
+      category: article.category
+        ? {
+            id: article.category.id,
+            name: article.category.name,
+            description: article.category.description,
+          }
+        : undefined,
+      author: article.author
+        ? {
+            id: article.author.id,
+            username: article.author.username,
+            fullName: article.author.fullName,
+            avatar: article.author.avatar,
+          }
+        : undefined,
+      createdAt: article.createdAt,
+      updatedAt: article.updatedAt,
+    }));
+
+    return new BaseResponse(
+      HttpStatus.OK,
+      'Lấy tất cả bài viết thành công',
+      data,
+    );
+  }
+
   // Lấy chi tiết bài viết
   async getArticleDetail(articleId: number) {
     const article = await this.articleRepository.findOne({

@@ -18,7 +18,7 @@ import { SearchArticleCategoryDto } from './dto/search-article-category.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { JwtPayloadUser } from '../auths/interfaces/jwt-payload-user';
 
-@ApiTags('Article Categories')
+@ApiTags('Quản lý danh mục bài viết (Article Categories)')
 @ApiBearerAuth()
 @Controller({ version: '1' })
 export class ArticleCategoriesController {

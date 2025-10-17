@@ -24,7 +24,7 @@ import {
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { ArticlesService } from './articles.service';
 
-@ApiTags('Articles')
+@ApiTags('Quản lý bài viết (Articles)')
 @Controller({ version: '1' })
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
@@ -51,6 +51,15 @@ export class ArticlesController {
   })
   async getArticles(@Query() searchArticleDto: SearchArticleDto) {
     return this.articlesService.getArticles(searchArticleDto);
+  }
+
+  @Get('all')
+  @ApiOperation({
+    summary: 'Lấy tất cả bài viết (không phân trang, không tìm kiếm)',
+  })
+  @ApiResponse({ status: 200, description: 'Lấy tất cả bài viết thành công' })
+  async getAllArticles() {
+    return this.articlesService.getAllArticles();
   }
 
   @Get(':id')

@@ -92,6 +92,26 @@ export class ArticlesController {
     return this.articlesService.getMySavedArticles(user);
   }
 
+  @Get('top/new')
+  @ApiOperation({ summary: 'Top 5 bài viết mới nhất' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lấy top 5 bài viết mới nhất thành công',
+  })
+  async getTopNewArticles() {
+    return this.articlesService.getTopNewArticles();
+  }
+
+  @Get('top/hot')
+  @ApiOperation({ summary: 'Top 5 bài viết nổi bật nhất (like cao nhất)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lấy top 5 bài viết nổi bật thành công',
+  })
+  async getTopHotArticles() {
+    return this.articlesService.getTopHotArticles();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Lấy chi tiết bài viết' })
   @ApiResponse({ status: 200, description: 'Lấy chi tiết bài viết thành công' })

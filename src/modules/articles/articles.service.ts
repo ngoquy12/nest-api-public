@@ -324,6 +324,88 @@ export class ArticlesService {
     );
   }
 
+  // Top 5 bài viết mới nhất
+  async getTopNewArticles() {
+    const articles = await this.articleRepository.find({
+      relations: ['category', 'author'],
+      order: { createdAt: 'DESC' },
+      take: 5,
+    });
+
+    const data = articles.map((article) => ({
+      id: article.id,
+      title: article.title,
+      content: article.content,
+      image: article.image,
+      likeCount: article.likeCount,
+      commentCount: article.commentCount,
+      category: article.category
+        ? {
+            id: article.category.id,
+            name: article.category.name,
+            description: article.category.description,
+          }
+        : undefined,
+      author: article.author
+        ? {
+            id: article.author.id,
+            username: article.author.username,
+            fullName: article.author.fullName,
+            avatar: article.author.avatar,
+          }
+        : undefined,
+      createdAt: article.createdAt,
+      updatedAt: article.updatedAt,
+    }));
+
+    return new BaseResponse(
+      HttpStatus.OK,
+      'Lấy top 5 bài viết mới nhất thành công',
+      data,
+    );
+  }
+
+  // Top 5 bài viết nổi bật nhất (like cao nhất)
+  async getTopHotArticles() {
+    const articles = await this.articleRepository.find({
+      relations: ['category', 'author'],
+      order: { likeCount: 'DESC', createdAt: 'DESC' },
+      take: 5,
+    });
+
+    const data = articles.map((article) => ({
+      id: article.id,
+      title: article.title,
+      content: article.content,
+      image: article.image,
+      likeCount: article.likeCount,
+      commentCount: article.commentCount,
+      category: article.category
+        ? {
+            id: article.category.id,
+            name: article.category.name,
+            description: article.category.description,
+          }
+        : undefined,
+      author: article.author
+        ? {
+            id: article.author.id,
+            username: article.author.username,
+            fullName: article.author.fullName,
+            avatar: article.author.avatar,
+          }
+        : undefined,
+      createdAt: article.createdAt,
+      updatedAt: article.updatedAt,
+    }));
+
+    return new BaseResponse(
+      HttpStatus.OK,
+      'Lấy top 5 bài viết nổi bật thành công',
+      data,
+    );
+  }
+
   // Lấy chi tiết bài viết
   async getArticleDetail(articleId: number) {
     const article = await this.articleRepository.findOne({

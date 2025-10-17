@@ -1,12 +1,5 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  IsEnum,
-  IsNumber,
-} from 'class-validator';
+import { IsOptional, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { LikeType } from '../enums/like-type.enum';
 
 export class CreateLikeDto {
   @ApiProperty({
@@ -26,14 +19,4 @@ export class CreateLikeDto {
   @IsNumber()
   @IsOptional()
   commentId?: number;
-
-  @ApiProperty({
-    description: 'Loại like',
-    enum: LikeType,
-    example: LikeType.LIKE,
-    required: false,
-  })
-  @IsEnum(LikeType)
-  @IsOptional()
-  type?: LikeType;
 }

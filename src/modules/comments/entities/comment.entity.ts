@@ -6,9 +6,6 @@ export class Comment extends BaseEntity {
   @Column({ type: 'text' })
   content: string;
 
-  @Column({ type: 'varchar', length: 50, default: 'PENDING' })
-  status: string;
-
   @Column({ type: 'int', nullable: true })
   parentId: number;
 
@@ -20,9 +17,6 @@ export class Comment extends BaseEntity {
 
   @Column({ type: 'int', default: 0 })
   likeCount: number;
-
-  @Column({ type: 'int', default: 0 })
-  replyCount: number;
 
   @ManyToOne('Article', 'comments')
   @JoinColumn({ name: 'articleId' })
@@ -38,4 +32,7 @@ export class Comment extends BaseEntity {
 
   @OneToMany('Comment', 'parent')
   replies: any[];
+
+  @OneToMany('Like', 'comment')
+  likes: any[];
 }

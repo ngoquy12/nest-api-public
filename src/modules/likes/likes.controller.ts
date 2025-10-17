@@ -1,88 +1,59 @@
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Body,
   Param,
-  Delete,
+  ParseIntPipe,
+  Post,
   UseGuards,
-  Query,
 } from '@nestjs/common';
 import { LikesService } from './likes.service';
 import { CreateLikeDto } from './dto/create-like.dto';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { SearchLikeDto } from './dto/search-like.dto';
-import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { CurrentUser } from '../auths/decorators/current-user.decorator';
 import { JwtPayloadUser } from '../auths/interfaces/jwt-payload-user';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 
 @ApiTags('Likes')
+@Controller('likes')
+@UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
-@Controller({ version: '1', path: 'likes' })
 export class LikesController {
-  constructor(private readonly likesService: LikesService) {}
+  constructor(private readonly likesSimpleService: LikesService) {}
 
-  @Post()
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary:
-      'API thêm like cho bài viết hoặc bình luận - Cần đăng nhập mới có quyền thao tác',
+  @Post('toggle')
+  @ApiOperation({ summary: 'Like/Unlike bài viết hoặc bình luận' })
+  @ApiResponse({ status: 200, description: 'Like/Unlike thành công' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiResponse({
+    status: 404,
+    description: 'Không tìm thấy bài viết hoặc bình luận',
   })
-  async createLike(
+  async toggleLike(
     @CurrentUser() user: JwtPayloadUser,
     @Body() createLikeDto: CreateLikeDto,
   ) {
-    return await this.likesService.createLike(user, createLikeDto);
+    return this.likesSimpleService.toggleLike(user, createLikeDto);
   }
 
-  @Get('search-paging')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary:
-      'API lấy danh sách, tìm kiếm, phân trang, sắp xếp, lọc dữ liệu like - Cần đăng nhập mới có quyền thao tác',
-  })
-  searchAndPagingLike(@Query() query: SearchLikeDto) {
-    return this.likesService.searchAndPagingLike(query);
+  @Get('article/:articleId')
+  @ApiOperation({ summary: 'Lấy danh sách người đã like bài viết' })
+  @ApiResponse({ status: 200, description: 'Lấy danh sách like thành công' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy bài viết' })
+  async getArticleLikes(@Param('articleId', ParseIntPipe) articleId: number) {
+    return this.likesSimpleService.getArticleLikes(articleId);
   }
 
-  @Get('article/:articleId/stats')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary:
-      'API lấy thống kê like của bài viết - Cần đăng nhập mới có quyền thao tác',
-  })
-  getArticleLikeStats(
-    @Param('articleId') articleId: string,
-    @Query('userId') userId?: string,
-  ) {
-    return this.likesService.getArticleLikeStats(
-      +articleId,
-      userId ? +userId : undefined,
-    );
-  }
-
-  @Get('comment/:commentId/stats')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary:
-      'API lấy thống kê like của bình luận - Cần đăng nhập mới có quyền thao tác',
-  })
-  getCommentLikeStats(
-    @Param('commentId') commentId: string,
-    @Query('userId') userId?: string,
-  ) {
-    return this.likesService.getCommentLikeStats(
-      +commentId,
-      userId ? +userId : undefined,
-    );
-  }
-
-  @Delete(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'API xóa like - Cần đăng nhập mới có quyền thao tác',
-  })
-  removeLike(@CurrentUser() user: JwtPayloadUser, @Param('id') id: string) {
-    return this.likesService.removeLike(user, +id);
+  @Get('comment/:commentId')
+  @ApiOperation({ summary: 'Lấy danh sách người đã like bình luận' })
+  @ApiResponse({ status: 200, description: 'Lấy danh sách like thành công' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy bình luận' })
+  async getCommentLikes(@Param('commentId', ParseIntPipe) commentId: number) {
+    return this.likesSimpleService.getCommentLikes(commentId);
   }
 }

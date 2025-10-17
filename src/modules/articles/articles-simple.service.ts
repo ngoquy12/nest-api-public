@@ -19,7 +19,7 @@ import { ArticleCategory } from '../article-categories/entities/article-category
 import { User } from '../users/entities/user.entity';
 
 @Injectable()
-export class ArticlesService {
+export class ArticlesSimpleService {
   constructor(
     @InjectRepository(Article)
     private readonly articleRepository: Repository<Article>,

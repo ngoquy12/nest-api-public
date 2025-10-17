@@ -10,7 +10,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ArticleCategory } from './entities/article-category.entity';
 import { SearchArticleCategoryDto } from './dto/search-article-category.dto';
-import { ArticleCategoryStatus } from './enums/article-category-status.enum';
 import {
   BaseResponse,
   PaginatedResponse,
@@ -32,51 +31,24 @@ export class ArticleCategoriesService {
   ) {
     const { id } = user;
 
-    const {
-      categoryName,
-      categoryDescription,
-      categoryStatus = ArticleCategoryStatus.ACTIVE,
-      categorySlug,
-      categoryImage,
-      sortOrder = 0,
-    } = createArticleCategoryDto;
+    const { name, description, image } = createArticleCategoryDto as any;
 
     // Kiểm tra trùng tên
     const existingCategory = await this.articleCategoryRepository.findOne({
-      where: {
-        categoryName: categoryName.trim(),
-        deletedAt: null,
-      },
+      where: { name: name.trim() },
     });
 
     if (existingCategory) {
       throw new BadRequestException('Tên danh mục đã tồn tại trong hệ thống');
     }
 
-    // Kiểm tra trùng slug nếu có
-    if (categorySlug) {
-      const existingSlug = await this.articleCategoryRepository.findOne({
-        where: {
-          categorySlug: categorySlug.trim(),
-          deletedAt: null,
-        },
-      });
-
-      if (existingSlug) {
-        throw new BadRequestException(
-          'Slug danh mục đã tồn tại trong hệ thống',
-        );
-      }
-    }
+    // Bỏ kiểm tra slug vì entity đã đơn giản hóa
 
     // Tạo và lưu danh mục
     const newCategory = this.articleCategoryRepository.create({
-      categoryName,
-      categoryDescription,
-      categoryStatus,
-      categorySlug: categorySlug || this.generateSlug(categoryName),
-      categoryImage,
-      sortOrder,
+      name,
+      description,
+      image,
       createdBy: id,
     });
 
@@ -85,15 +57,13 @@ export class ArticleCategoriesService {
 
     const categoryResponse: ArticleCategoryResponse = {
       id: savedCategory.id,
-      categoryName: savedCategory.categoryName,
-      categoryDescription: savedCategory.categoryDescription,
-      categoryStatus: savedCategory.categoryStatus,
-      categorySlug: savedCategory.categorySlug,
-      categoryImage: savedCategory.categoryImage,
-      sortOrder: savedCategory.sortOrder,
+      name: savedCategory.name,
+      description: savedCategory.description,
+      image: savedCategory.image,
+      articleCount: savedCategory.articleCount,
       createdAt: savedCategory.createdAt,
       updatedAt: savedCategory.updatedAt,
-    };
+    } as any;
 
     return new BaseResponse(
       HttpStatus.CREATED,
@@ -105,8 +75,8 @@ export class ArticleCategoriesService {
   // Tìm kiếm và phân trang danh mục bài viết
   async searchAndPagingArticleCategory(
     query: SearchArticleCategoryDto,
-  ): Promise<PaginatedResponse<ArticleCategoryResponse>> {
-    const { keyword, currentPage = 1, pageSize = 10, categoryStatus } = query;
+  ): Promise<PaginatedResponse<ArticleCategoryResponse[]>> {
+    const { keyword, currentPage = 1, pageSize = 10 } = query;
 
     // 1. Tạo query builder
     const queryBuilder =
@@ -115,21 +85,15 @@ export class ArticleCategoriesService {
     // 2. Thêm điều kiện tìm kiếm
     if (keyword) {
       queryBuilder.andWhere(
-        '(category.categoryName LIKE :keyword OR category.categoryDescription LIKE :keyword)',
+        '(category.name LIKE :keyword OR category.description LIKE :keyword)',
         { keyword: `%${keyword}%` },
       );
     }
 
     // 3. Thêm điều kiện lọc trạng thái
-    if (categoryStatus) {
-      queryBuilder.andWhere('category.categoryStatus = :status', {
-        status: categoryStatus,
-      });
-    }
+    // Bỏ lọc trạng thái vì entity đã đơn giản hóa
 
-    queryBuilder.andWhere('category.deletedAt IS NULL');
-    queryBuilder.orderBy('category.sortOrder', 'ASC');
-    queryBuilder.addOrderBy('category.createdAt', 'DESC');
+    queryBuilder.orderBy('category.createdAt', 'DESC');
 
     queryBuilder.skip((currentPage - 1) * pageSize).take(pageSize);
 
@@ -139,18 +103,16 @@ export class ArticleCategoriesService {
     // 5. Tạo dữ liệu phân trang
     const paginated = data.map((category) => ({
       id: category.id,
-      categoryName: category.categoryName,
-      categoryDescription: category.categoryDescription,
-      categoryStatus: category.categoryStatus,
-      categorySlug: category.categorySlug,
-      categoryImage: category.categoryImage,
-      sortOrder: category.sortOrder,
+      name: category.name,
+      description: category.description,
+      image: category.image,
+      articleCount: category.articleCount,
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,
     }));
 
     // 6. Trả kết quả
-    return new PaginatedResponse(
+    return new PaginatedResponse<ArticleCategoryResponse[]>(
       HttpStatus.OK,
       'Lấy danh sách danh mục bài viết thành công',
       paginated,
@@ -166,7 +128,7 @@ export class ArticleCategoriesService {
   // Lấy thông tin chi tiết danh mục bài viết theo id
   async getArticleCategoryDetail(categoryId: number) {
     const category = await this.articleCategoryRepository.findOne({
-      where: { id: categoryId, deletedAt: null },
+      where: { id: categoryId },
       relations: ['articles'],
     });
 
@@ -177,16 +139,13 @@ export class ArticleCategoriesService {
     // Thông tin cơ bản danh mục
     const categoryDetailResponse: ArticleCategoryResponse = {
       id: category.id,
-      categoryName: category.categoryName,
-      categoryDescription: category.categoryDescription,
-      categoryStatus: category.categoryStatus,
-      categorySlug: category.categorySlug,
-      categoryImage: category.categoryImage,
-      sortOrder: category.sortOrder,
+      name: category.name,
+      description: category.description,
+      image: category.image,
+      articleCount: category.articles?.length || 0,
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,
-      articleCount: category.articles?.length || 0,
-    };
+    } as any;
 
     return new BaseResponse(
       HttpStatus.OK,
@@ -201,10 +160,10 @@ export class ArticleCategoriesService {
     id: number,
     updateArticleCategoryDto: UpdateArticleCategoryDto,
   ) {
-    const { categoryName, categorySlug } = updateArticleCategoryDto;
+    const { name } = updateArticleCategoryDto as any;
 
     const category = await this.articleCategoryRepository.findOne({
-      where: { id, deletedAt: null },
+      where: { id },
     });
 
     if (!category) {
@@ -212,12 +171,9 @@ export class ArticleCategoriesService {
     }
 
     // Kiểm tra trùng tên (nếu có thay đổi tên)
-    if (categoryName && categoryName !== category.categoryName) {
+    if (name && name !== category.name) {
       const existingCategory = await this.articleCategoryRepository.findOne({
-        where: {
-          categoryName: categoryName.trim(),
-          deletedAt: null,
-        },
+        where: { name: name.trim() },
       });
 
       if (existingCategory) {
@@ -225,21 +181,7 @@ export class ArticleCategoriesService {
       }
     }
 
-    // Kiểm tra trùng slug (nếu có thay đổi slug)
-    if (categorySlug && categorySlug !== category.categorySlug) {
-      const existingSlug = await this.articleCategoryRepository.findOne({
-        where: {
-          categorySlug: categorySlug.trim(),
-          deletedAt: null,
-        },
-      });
-
-      if (existingSlug) {
-        throw new BadRequestException(
-          'Slug danh mục đã tồn tại trong hệ thống',
-        );
-      }
-    }
+    // Bỏ kiểm tra slug vì entity đã đơn giản hóa
 
     // Cập nhật thông tin danh mục
     Object.assign(category, {
@@ -252,15 +194,13 @@ export class ArticleCategoriesService {
     // Trả về thông tin danh mục đã cập nhật
     const updatedCategoryResponse: ArticleCategoryResponse = {
       id: updatedCategory.id,
-      categoryName: updatedCategory.categoryName,
-      categoryDescription: updatedCategory.categoryDescription,
-      categoryStatus: updatedCategory.categoryStatus,
-      categorySlug: updatedCategory.categorySlug,
-      categoryImage: updatedCategory.categoryImage,
-      sortOrder: updatedCategory.sortOrder,
+      name: updatedCategory.name,
+      description: updatedCategory.description,
+      image: updatedCategory.image,
+      articleCount: updatedCategory.articleCount,
       createdAt: updatedCategory.createdAt,
       updatedAt: updatedCategory.updatedAt,
-    };
+    } as any;
 
     return new BaseResponse(
       HttpStatus.OK,
@@ -272,10 +212,7 @@ export class ArticleCategoriesService {
   // Xóa danh mục bài viết theo id
   async removeArticleCategoryById(user: JwtPayloadUser, categoryId: number) {
     const category = await this.articleCategoryRepository.findOne({
-      where: {
-        id: categoryId,
-        deletedAt: null,
-      },
+      where: { id: categoryId },
       relations: ['articles'],
     });
 
@@ -290,7 +227,9 @@ export class ArticleCategoriesService {
     }
 
     // Thực hiện xóa mềm
-    await this.articleCategoryRepository.softDelete(categoryId);
+    await this.articleCategoryRepository.update(categoryId, {
+      deletedAt: new Date(),
+    });
 
     return new BaseResponse(
       HttpStatus.OK,
@@ -302,15 +241,8 @@ export class ArticleCategoriesService {
   // Lấy danh sách danh mục cho dropdown
   async getArticleCategoriesForDropdown() {
     const categories = await this.articleCategoryRepository.find({
-      where: {
-        categoryStatus: ArticleCategoryStatus.ACTIVE,
-        deletedAt: null,
-      },
-      order: {
-        sortOrder: 'ASC',
-        categoryName: 'ASC',
-      },
-      select: ['id', 'categoryName', 'categorySlug'],
+      order: { createdAt: 'DESC' },
+      select: ['id', 'name'],
     });
 
     return new BaseResponse(
@@ -321,14 +253,8 @@ export class ArticleCategoriesService {
   }
 
   // Tạo slug từ tên danh mục
+  // Slug đã bỏ
   private generateSlug(name: string): string {
-    return name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
+    return name;
   }
 }

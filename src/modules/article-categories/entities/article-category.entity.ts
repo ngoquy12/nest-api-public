@@ -4,23 +4,17 @@ import { BaseEntity } from 'src/common/entities/base.entity';
 @Entity('article_categories')
 export class ArticleCategory extends BaseEntity {
   @Column({ type: 'varchar', length: 255, unique: true })
-  categoryName: string;
+  name: string;
 
   @Column({ type: 'text', nullable: true })
-  categoryDescription: string;
+  description: string;
 
-  @Column({ type: 'varchar', length: 50, default: 'ACTIVE' })
-  categoryStatus: string;
-
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  categorySlug: string;
-
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  categoryImage: string;
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  image: string;
 
   @Column({ type: 'int', default: 0 })
-  sortOrder: number;
+  articleCount: number;
 
-  @OneToMany('Article', 'articleCategory')
+  @OneToMany('Article', 'category')
   articles: any[];
 }

@@ -1,124 +1,96 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Param,
+  Controller,
   Delete,
-  UseGuards,
-  Query,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
   Put,
-  Patch,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { SearchCommentDto } from './dto/search-comment.dto';
-import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { CurrentUser } from '../auths/decorators/current-user.decorator';
 import { JwtPayloadUser } from '../auths/interfaces/jwt-payload-user';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 
 @ApiTags('Comments')
+@Controller({ version: '1' })
+@UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
-@Controller({ version: '1', path: 'comments' })
 export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'API thêm mới bình luận - Cần đăng nhập mới có quyền thao tác',
+  @ApiOperation({ summary: 'Tạo bình luận mới' })
+  @ApiResponse({ status: 201, description: 'Tạo bình luận thành công' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiResponse({
+    status: 404,
+    description: 'Không tìm thấy bài viết hoặc bình luận cha',
   })
   async createComment(
     @CurrentUser() user: JwtPayloadUser,
     @Body() createCommentDto: CreateCommentDto,
   ) {
-    return await this.commentsService.createComment(user, createCommentDto);
-  }
-
-  @Get('search-paging')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary:
-      'API lấy danh sách, tìm kiếm, phân trang, sắp xếp, lọc dữ liệu bình luận - Cần đăng nhập mới có quyền thao tác',
-  })
-  searchAndPagingComment(@Query() query: SearchCommentDto) {
-    return this.commentsService.searchAndPagingComment(query);
+    return this.commentsService.createComment(user, createCommentDto);
   }
 
   @Get('article/:articleId')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary:
-      'API lấy danh sách bình luận theo cây cho một bài viết - Cần đăng nhập mới có quyền thao tác',
+  @ApiOperation({ summary: 'Lấy danh sách bình luận của bài viết' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lấy danh sách bình luận thành công',
   })
-  getCommentsByArticleId(@Param('articleId') articleId: string) {
-    return this.commentsService.getCommentsByArticleId(+articleId);
-  }
-
-  @Get('detail/:id')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary:
-      'API lấy thông tin chi tiết bình luận - Cần đăng nhập mới có quyền thao tác',
-  })
-  getCommentDetail(@Param('id') id: string) {
-    return this.commentsService.getCommentDetail(+id);
+  async getCommentsByArticle(
+    @Param('articleId', ParseIntPipe) articleId: number,
+    @Query('currentPage') currentPage: number = 1,
+    @Query('pageSize') pageSize: number = 10,
+  ) {
+    return this.commentsService.getCommentsByArticle(
+      articleId,
+      currentPage,
+      pageSize,
+    );
   }
 
   @Put(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary:
-      'API cập nhật thông tin bình luận - Cần đăng nhập mới có quyền thao tác',
+  @ApiOperation({ summary: 'Cập nhật bình luận' })
+  @ApiResponse({ status: 200, description: 'Cập nhật bình luận thành công' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bạn không có quyền cập nhật bình luận này',
   })
-  updateComment(
+  @ApiResponse({ status: 404, description: 'Không tìm thấy bình luận' })
+  async updateComment(
     @CurrentUser() user: JwtPayloadUser,
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateCommentDto: UpdateCommentDto,
   ) {
-    return this.commentsService.updateComment(user, +id, updateCommentDto);
-  }
-
-  @Patch(':id/approve')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'API duyệt bình luận - Cần đăng nhập mới có quyền thao tác',
-  })
-  approveComment(@Param('id') id: string) {
-    return this.commentsService.approveComment(+id);
-  }
-
-  @Patch(':id/reject')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'API từ chối bình luận - Cần đăng nhập mới có quyền thao tác',
-  })
-  rejectComment(@Param('id') id: string) {
-    return this.commentsService.rejectComment(+id);
-  }
-
-  @Patch(':id/spam')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary:
-      'API đánh dấu spam bình luận - Cần đăng nhập mới có quyền thao tác',
-  })
-  markAsSpam(@Param('id') id: string) {
-    return this.commentsService.markAsSpam(+id);
+    return this.commentsService.updateComment(user, id, updateCommentDto);
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary:
-      'API xóa thông tin bình luận - Cần đăng nhập mới có quyền thao tác',
+  @ApiOperation({ summary: 'Xóa bình luận' })
+  @ApiResponse({ status: 200, description: 'Xóa bình luận thành công' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bạn không có quyền xóa bình luận này',
   })
-  removeCommentById(
+  @ApiResponse({ status: 404, description: 'Không tìm thấy bình luận' })
+  async deleteComment(
     @CurrentUser() user: JwtPayloadUser,
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.commentsService.removeCommentById(user, +id);
+    return this.commentsService.deleteComment(user, id);
   }
 }

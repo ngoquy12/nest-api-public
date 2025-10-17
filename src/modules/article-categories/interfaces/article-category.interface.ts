@@ -1,12 +1,9 @@
 export interface ArticleCategoryResponse {
   id: number;
-  categoryName: string;
-  categoryDescription?: string;
-  categoryStatus: string;
-  categorySlug?: string;
-  categoryImage?: string;
-  sortOrder: number;
+  name: string;
+  description?: string;
+  image?: string;
+  articleCount: number;
   createdAt: Date;
   updatedAt: Date;
-  articleCount?: number;
 }

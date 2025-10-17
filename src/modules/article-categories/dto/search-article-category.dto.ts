@@ -1,14 +1,6 @@
-import {
-  IsOptional,
-  IsString,
-  IsEnum,
-  IsNumber,
-  Min,
-  Max,
-} from 'class-validator';
+import { IsOptional, IsString, IsNumber, Min, Max } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { ArticleCategoryStatus } from '../enums/article-category-status.enum';
 
 export class SearchArticleCategoryDto {
   @ApiProperty({
@@ -19,16 +11,6 @@ export class SearchArticleCategoryDto {
   @IsString()
   @IsOptional()
   keyword?: string;
-
-  @ApiProperty({
-    description: 'Trạng thái danh mục',
-    enum: ArticleCategoryStatus,
-    example: ArticleCategoryStatus.ACTIVE,
-    required: false,
-  })
-  @IsEnum(ArticleCategoryStatus)
-  @IsOptional()
-  categoryStatus?: ArticleCategoryStatus;
 
   @ApiProperty({
     description: 'Trang hiện tại',

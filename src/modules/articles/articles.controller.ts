@@ -1,113 +1,94 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Param,
+  Controller,
   Delete,
-  UseGuards,
-  Query,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
   Put,
-  Patch,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ArticlesService } from './articles.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SearchArticleDto } from './dto/search-article.dto';
-import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { CurrentUser } from '../auths/decorators/current-user.decorator';
 import { JwtPayloadUser } from '../auths/interfaces/jwt-payload-user';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { ArticlesService } from './articles.service';
 
 @ApiTags('Articles')
-@ApiBearerAuth()
 @Controller({ version: '1' })
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class ArticlesController {
   constructor(private readonly articlesService: ArticlesService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'API thêm mới bài viết - Cần đăng nhập mới có quyền thao tác',
-  })
+  @ApiOperation({ summary: 'Tạo bài viết mới' })
+  @ApiResponse({ status: 201, description: 'Tạo bài viết thành công' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy danh mục' })
   async createArticle(
     @CurrentUser() user: JwtPayloadUser,
     @Body() createArticleDto: CreateArticleDto,
   ) {
-    return await this.articlesService.createArticle(user, createArticleDto);
+    return this.articlesService.createArticle(user, createArticleDto);
   }
 
-  @Get('search-paging')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary:
-      'API lấy danh sách, tìm kiếm, phân trang, sắp xếp, lọc dữ liệu bài viết - Cần đăng nhập mới có quyền thao tác',
+  @Get()
+  @ApiOperation({ summary: 'Lấy danh sách bài viết' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lấy danh sách bài viết thành công',
   })
-  searchAndPagingArticle(@Query() query: SearchArticleDto) {
-    return this.articlesService.searchAndPagingArticle(query);
+  async getArticles(@Query() searchArticleDto: SearchArticleDto) {
+    return this.articlesService.getArticles(searchArticleDto);
   }
 
-  @Get('detail/:id')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary:
-      'API lấy thông tin chi tiết bài viết theo ID - Cần đăng nhập mới có quyền thao tác',
-  })
-  getArticleDetail(@Param('id') id: string) {
-    return this.articlesService.getArticleDetail(+id);
-  }
-
-  @Get('slug/:slug')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary:
-      'API lấy thông tin chi tiết bài viết theo slug - Cần đăng nhập mới có quyền thao tác',
-  })
-  getArticleBySlug(@Param('slug') slug: string) {
-    return this.articlesService.getArticleBySlug(slug);
+  @Get(':id')
+  @ApiOperation({ summary: 'Lấy chi tiết bài viết' })
+  @ApiResponse({ status: 200, description: 'Lấy chi tiết bài viết thành công' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy bài viết' })
+  async getArticleDetail(@Param('id', ParseIntPipe) id: number) {
+    return this.articlesService.getArticleDetail(id);
   }
 
   @Put(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary:
-      'API cập nhật thông tin bài viết - Cần đăng nhập mới có quyền thao tác',
+  @ApiOperation({ summary: 'Cập nhật bài viết' })
+  @ApiResponse({ status: 200, description: 'Cập nhật bài viết thành công' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bạn không có quyền cập nhật bài viết này',
   })
-  updateArticle(
+  @ApiResponse({ status: 404, description: 'Không tìm thấy bài viết' })
+  async updateArticle(
     @CurrentUser() user: JwtPayloadUser,
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateArticleDto: UpdateArticleDto,
   ) {
-    return this.articlesService.updateArticle(user, +id, updateArticleDto);
-  }
-
-  @Patch(':id/publish')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'API xuất bản bài viết - Cần đăng nhập mới có quyền thao tác',
-  })
-  publishArticle(@CurrentUser() user: JwtPayloadUser, @Param('id') id: string) {
-    return this.articlesService.publishArticle(user, +id);
-  }
-
-  @Patch(':id/archive')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'API lưu trữ bài viết - Cần đăng nhập mới có quyền thao tác',
-  })
-  archiveArticle(@CurrentUser() user: JwtPayloadUser, @Param('id') id: string) {
-    return this.articlesService.archiveArticle(user, +id);
+    return this.articlesService.updateArticle(user, id, updateArticleDto);
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: 'API xóa thông tin bài viết - Cần đăng nhập mới có quyền thao tác',
+  @ApiOperation({ summary: 'Xóa bài viết' })
+  @ApiResponse({ status: 200, description: 'Xóa bài viết thành công' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bạn không có quyền xóa bài viết này',
   })
-  removeArticleById(
+  @ApiResponse({ status: 404, description: 'Không tìm thấy bài viết' })
+  async deleteArticle(
     @CurrentUser() user: JwtPayloadUser,
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.articlesService.removeArticleById(user, +id);
+    return this.articlesService.deleteArticle(user, id);
   }
 }

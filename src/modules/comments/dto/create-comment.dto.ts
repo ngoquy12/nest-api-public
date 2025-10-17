@@ -1,13 +1,5 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  IsNumber,
-  IsEnum,
-  MaxLength,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { CommentStatus } from '../enums/comment-status.enum';
 
 export class CreateCommentDto {
   @ApiProperty({
@@ -16,7 +8,6 @@ export class CreateCommentDto {
   })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(1000)
   content: string;
 
   @ApiProperty({
@@ -35,14 +26,4 @@ export class CreateCommentDto {
   @IsNumber()
   @IsOptional()
   parentId?: number;
-
-  @ApiProperty({
-    description: 'Trạng thái bình luận',
-    enum: CommentStatus,
-    example: CommentStatus.PENDING,
-    required: false,
-  })
-  @IsEnum(CommentStatus)
-  @IsOptional()
-  status?: CommentStatus;
 }

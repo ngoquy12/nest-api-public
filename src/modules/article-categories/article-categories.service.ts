@@ -45,16 +45,16 @@ export class ArticleCategoriesService {
     const safeImage =
       typeof rawImage === 'string' ? rawImage.trim() : undefined;
 
-    // Kiểm tra trùng tên
-    const existingCategory = await this.articleCategoryRepository.findOne({
-      where: { name: safeName },
-    });
+    // Kiểm tra trùng tên (không phân biệt hoa/thường, bỏ khoảng trắng 2 đầu)
+    const normalizedName = safeName.toLowerCase();
+    const existingCategory = await this.articleCategoryRepository
+      .createQueryBuilder('category')
+      .where('LOWER(category.name) = :name', { name: normalizedName })
+      .getOne();
 
     if (existingCategory) {
       throw new BadRequestException('Tên danh mục đã tồn tại trong hệ thống');
     }
-
-    // Bỏ kiểm tra slug vì entity đã đơn giản hóa
 
     // Tạo và lưu danh mục
     const newCategory = this.articleCategoryRepository.create({
@@ -64,8 +64,15 @@ export class ArticleCategoriesService {
       createdBy: id,
     });
 
-    const savedCategory =
-      await this.articleCategoryRepository.save(newCategory);
+    let savedCategory: ArticleCategory;
+    try {
+      savedCategory = await this.articleCategoryRepository.save(newCategory);
+    } catch (err: any) {
+      if (err?.code === 'ER_DUP_ENTRY') {
+        throw new BadRequestException('Tên danh mục đã tồn tại trong hệ thống');
+      }
+      throw err;
+    }
 
     const categoryResponse: ArticleCategoryResponse = {
       id: savedCategory.id,
@@ -182,14 +189,25 @@ export class ArticleCategoriesService {
       throw new NotFoundException('Không tìm thấy thông tin danh mục bài viết');
     }
 
-    // Kiểm tra trùng tên (nếu có thay đổi tên)
-    if (name && name !== category.name) {
-      const existingCategory = await this.articleCategoryRepository.findOne({
-        where: { name: name.trim() },
-      });
-
-      if (existingCategory) {
-        throw new BadRequestException('Tên danh mục đã tồn tại trong hệ thống');
+    // Kiểm tra trùng tên (nếu thay đổi tên) - so sánh không phân biệt hoa/thường và loại trừ chính nó
+    if (typeof name === 'string') {
+      const proposed = name.trim();
+      if (
+        proposed &&
+        proposed.toLowerCase() !== (category.name || '').toLowerCase()
+      ) {
+        const dup = await this.articleCategoryRepository
+          .createQueryBuilder('category')
+          .where('LOWER(category.name) = :name', {
+            name: proposed.toLowerCase(),
+          })
+          .andWhere('category.id != :id', { id })
+          .getOne();
+        if (dup) {
+          throw new BadRequestException(
+            'Tên danh mục đã tồn tại trong hệ thống',
+          );
+        }
       }
     }
 

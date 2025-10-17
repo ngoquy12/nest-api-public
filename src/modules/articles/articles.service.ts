@@ -17,6 +17,7 @@ import {
 import { JwtPayloadUser } from '../auths/interfaces/jwt-payload-user';
 import { ArticleCategory } from '../article-categories/entities/article-category.entity';
 import { User } from '../users/entities/user.entity';
+import { SavedArticle } from './entities/saved-article.entity';
 
 @Injectable()
 export class ArticlesService {
@@ -27,6 +28,8 @@ export class ArticlesService {
     private readonly articleCategoryRepository: Repository<ArticleCategory>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(SavedArticle)
+    private readonly savedArticleRepository: Repository<SavedArticle>,
   ) {}
 
   // Tạo bài viết mới
@@ -229,6 +232,94 @@ export class ArticlesService {
     return new BaseResponse(
       HttpStatus.OK,
       'Lấy danh sách bài viết cá nhân thành công',
+      data,
+    );
+  }
+
+  // Lưu/bỏ lưu bài viết (toggle)
+  async toggleSaveArticle(user: JwtPayloadUser, articleId: number) {
+    const article = await this.articleRepository.findOne({
+      where: { id: articleId },
+    });
+    if (!article) {
+      throw new NotFoundException('Không tìm thấy bài viết');
+    }
+
+    const existing = await this.savedArticleRepository.findOne({
+      where: { userId: user.id, articleId },
+      withDeleted: true,
+    });
+
+    if (existing && !existing.deletedAt) {
+      await this.savedArticleRepository.update(existing.id, {
+        deletedAt: new Date(),
+      });
+      return new BaseResponse(HttpStatus.OK, 'Bỏ lưu bài viết thành công', {
+        saved: false,
+      });
+    }
+
+    if (existing && existing.deletedAt) {
+      await this.savedArticleRepository.update(existing.id, {
+        deletedAt: null,
+      });
+      return new BaseResponse(HttpStatus.OK, 'Lưu bài viết thành công', {
+        saved: true,
+      });
+    }
+
+    const created = this.savedArticleRepository.create({
+      userId: user.id,
+      articleId,
+      createdBy: user.id,
+    });
+    await this.savedArticleRepository.save(created);
+    return new BaseResponse(HttpStatus.OK, 'Lưu bài viết thành công', {
+      saved: true,
+    });
+  }
+
+  // Danh sách bài viết đã lưu của tôi
+  async getMySavedArticles(user: JwtPayloadUser) {
+    const saved = await this.savedArticleRepository.find({
+      where: { userId: user.id },
+      relations: ['article', 'article.category', 'article.author'],
+    });
+
+    const data = saved
+      .filter((s) => s.article)
+      .map((s) => {
+        const a = s.article;
+        return {
+          id: a.id,
+          title: a.title,
+          content: a.content,
+          image: a.image,
+          likeCount: a.likeCount,
+          commentCount: a.commentCount,
+          category: a.category
+            ? {
+                id: a.category.id,
+                name: a.category.name,
+                description: a.category.description,
+              }
+            : undefined,
+          author: a.author
+            ? {
+                id: a.author.id,
+                username: a.author.username,
+                fullName: a.author.fullName,
+                avatar: a.author.avatar,
+              }
+            : undefined,
+          createdAt: a.createdAt,
+          updatedAt: a.updatedAt,
+        };
+      });
+
+    return new BaseResponse(
+      HttpStatus.OK,
+      'Lấy danh sách bài viết đã lưu thành công',
       data,
     );
   }

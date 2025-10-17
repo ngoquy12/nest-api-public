@@ -37,4 +37,6 @@ export class Article extends BaseEntity {
 
   @OneToMany('Like', 'article')
   likes: any[];
+
+  // saved articles pivot is handled in SavedArticle entity
 }

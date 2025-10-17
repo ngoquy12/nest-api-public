@@ -72,6 +72,26 @@ export class ArticlesController {
     return this.articlesService.getMyArticles(user);
   }
 
+  @Post(':id/save')
+  @ApiOperation({ summary: 'Lưu/bỏ lưu bài viết' })
+  @ApiResponse({ status: 200, description: 'Toggle lưu bài viết' })
+  async toggleSaveArticle(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.articlesService.toggleSaveArticle(user, id);
+  }
+
+  @Get('me/saved')
+  @ApiOperation({ summary: 'Lấy danh sách bài viết đã lưu của tôi' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lấy danh sách bài viết đã lưu thành công',
+  })
+  async getMySavedArticles(@CurrentUser() user: JwtPayloadUser) {
+    return this.articlesService.getMySavedArticles(user);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Lấy chi tiết bài viết' })
   @ApiResponse({ status: 200, description: 'Lấy chi tiết bài viết thành công' })

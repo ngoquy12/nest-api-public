@@ -36,7 +36,9 @@ async function bootstrap() {
   });
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Tài liệu API phục vụ học tập của sinh viên Rikkei Education')
+    .setTitle(
+      'Tài liệu API phục vụ học tập của sinh viên Rikkei Education và Rikkei Academy',
+    )
     .setDescription(
       'Bộ tài liệu cung cấp đầy đủ, chi tiết các API phục vụ cho sinh viên học tập',
     )

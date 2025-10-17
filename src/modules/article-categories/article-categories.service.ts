@@ -264,9 +264,36 @@ export class ArticleCategoriesService {
     );
   }
 
-  // Tạo slug từ tên danh mục
-  // Slug đã bỏ
-  private generateSlug(name: string): string {
-    return name;
+  // Lấy tất cả danh mục (không phân trang)
+  async getAllCategories(): Promise<BaseResponse<ArticleCategoryResponse>> {
+    const categories = await this.articleCategoryRepository.find({
+      order: { createdAt: 'DESC' },
+      relations: ['articles'],
+      select: [
+        'id',
+        'name',
+        'description',
+        'image',
+        'articleCount',
+        'createdAt',
+        'updatedAt',
+      ],
+    });
+
+    const data: ArticleCategoryResponse[] = categories.map((c) => ({
+      id: c.id,
+      name: c.name,
+      description: c.description,
+      image: c.image,
+      articleCount: c.articleCount,
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
+    }));
+
+    return new BaseResponse(
+      HttpStatus.OK,
+      'Lấy tất cả danh mục bài viết thành công',
+      data,
+    );
   }
 }

@@ -62,6 +62,16 @@ export class ArticlesController {
     return this.articlesService.getAllArticles();
   }
 
+  @Get('me/all')
+  @ApiOperation({ summary: 'Lấy tất cả bài viết của tôi' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lấy danh sách bài viết cá nhân thành công',
+  })
+  async getMyArticles(@CurrentUser() user: JwtPayloadUser) {
+    return this.articlesService.getMyArticles(user);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Lấy chi tiết bài viết' })
   @ApiResponse({ status: 200, description: 'Lấy chi tiết bài viết thành công' })

@@ -62,6 +62,16 @@ export class ArticleCategoriesController {
     return this.articleCategoriesService.getArticleCategoriesForDropdown();
   }
 
+  @Get('all')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary:
+      'API lấy tất cả danh mục bài viết (không phân trang) - Cần đăng nhập mới có quyền thao tác',
+  })
+  getAllCategories() {
+    return this.articleCategoriesService.getAllCategories();
+  }
+
   @Get('detail/:id')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({

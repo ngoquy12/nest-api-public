@@ -52,16 +52,6 @@ export class ArticleCategoriesController {
     return this.articleCategoriesService.searchAndPagingArticleCategory(query);
   }
 
-  @Get('dropdown')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary:
-      'API lấy danh sách danh mục cho dropdown - Cần đăng nhập mới có quyền thao tác',
-  })
-  getArticleCategoriesForDropdown() {
-    return this.articleCategoriesService.getArticleCategoriesForDropdown();
-  }
-
   @Get('all')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({

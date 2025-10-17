@@ -7,7 +7,6 @@ import {
   ParseIntPipe,
   Post,
   Put,
-  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CommentsService } from './comments.service';
@@ -53,14 +52,8 @@ export class CommentsController {
   })
   async getCommentsByArticle(
     @Param('articleId', ParseIntPipe) articleId: number,
-    @Query('currentPage') currentPage: number = 1,
-    @Query('pageSize') pageSize: number = 10,
   ) {
-    return this.commentsService.getCommentsByArticle(
-      articleId,
-      currentPage,
-      pageSize,
-    );
+    return this.commentsService.getCommentsByArticle(articleId);
   }
 
   @Put(':id')

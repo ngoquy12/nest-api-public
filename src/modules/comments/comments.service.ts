@@ -11,10 +11,7 @@ import { Repository } from 'typeorm';
 import { Comment } from './entities/comment.entity';
 import { Article } from '../articles/entities/article.entity';
 import { User } from '../users/entities/user.entity';
-import {
-  BaseResponse,
-  PaginatedResponse,
-} from 'src/common/responses/base-response';
+import { BaseResponse } from 'src/common/responses/base-response';
 import { JwtPayloadUser } from '../auths/interfaces/jwt-payload-user';
 
 @Injectable()
@@ -83,11 +80,7 @@ export class CommentsService {
   }
 
   // Lấy danh sách bình luận của bài viết
-  async getCommentsByArticle(
-    articleId: number,
-    currentPage: number = 1,
-    pageSize: number = 10,
-  ) {
+  async getCommentsByArticle(articleId: number) {
     const queryBuilder = this.commentRepository
       .createQueryBuilder('comment')
       .leftJoinAndSelect('comment.user', 'user')
@@ -97,31 +90,35 @@ export class CommentsService {
       .andWhere('comment.parentId IS NULL') // Chỉ lấy bình luận gốc
       .orderBy('comment.createdAt', 'DESC');
 
-    queryBuilder.skip((currentPage - 1) * pageSize).take(pageSize);
-
-    const [data, total] = await queryBuilder.getManyAndCount();
+    const data = await queryBuilder.getMany();
 
     const comments = data.map((comment) => ({
       id: comment.id,
       content: comment.content,
       likeCount: comment.likeCount,
       replyCount: comment.replies.length,
-      user: {
-        id: comment.user.id,
-        username: comment.user.username,
-        fullName: comment.user.fullName,
-        avatar: comment.user.avatar,
-      },
+      userId: comment.userId,
+      user: comment.user
+        ? {
+            id: comment.user.id,
+            username: comment.user.username,
+            fullName: comment.user.fullName,
+            avatar: comment.user.avatar,
+          }
+        : undefined,
       replies: comment.replies.map((reply) => ({
         id: reply.id,
         content: reply.content,
         likeCount: reply.likeCount,
-        user: {
-          id: reply.user.id,
-          username: reply.user.username,
-          fullName: reply.user.fullName,
-          avatar: reply.user.avatar,
-        },
+        userId: reply.userId,
+        user: reply.user
+          ? {
+              id: reply.user.id,
+              username: reply.user.username,
+              fullName: reply.user.fullName,
+              avatar: reply.user.avatar,
+            }
+          : undefined,
         createdAt: reply.createdAt,
         updatedAt: reply.updatedAt,
       })),
@@ -129,16 +126,10 @@ export class CommentsService {
       updatedAt: comment.updatedAt,
     }));
 
-    return new PaginatedResponse(
+    return new BaseResponse(
       HttpStatus.OK,
       'Lấy danh sách bình luận thành công',
       comments,
-      {
-        totalRecords: total,
-        currentPage: +currentPage,
-        pageSize: +pageSize,
-        totalPages: Math.ceil(total / pageSize),
-      },
     );
   }
 

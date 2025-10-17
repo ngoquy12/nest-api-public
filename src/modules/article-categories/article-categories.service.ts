@@ -268,20 +268,6 @@ export class ArticleCategoriesService {
     );
   }
 
-  // Lấy danh sách danh mục cho dropdown
-  async getArticleCategoriesForDropdown() {
-    const categories = await this.articleCategoryRepository.find({
-      order: { createdAt: 'DESC' },
-      select: ['id', 'name'],
-    });
-
-    return new BaseResponse(
-      HttpStatus.OK,
-      'Lấy danh sách danh mục thành công',
-      categories,
-    );
-  }
-
   // Lấy tất cả danh mục (không phân trang)
   async getAllCategories(): Promise<BaseResponse<ArticleCategoryResponse>> {
     const categories = await this.articleCategoryRepository.find({

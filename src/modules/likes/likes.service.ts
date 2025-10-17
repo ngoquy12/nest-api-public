@@ -66,28 +66,27 @@ export class LikesService {
       }
     }
 
-    // Kiểm tra đã like chưa
+    // Kiểm tra đã like trước đó (kể cả đã soft delete) để tránh vi phạm unique key
     const existingLike = await this.likeRepository.findOne({
       where: {
         userId: id,
         articleId: articleId || null,
         commentId: commentId || null,
       },
+      withDeleted: true,
     });
 
-    if (existingLike) {
-      // Nếu đã like thì unlike
+    if (existingLike && !existingLike.deletedAt) {
+      // Đang like -> unlike (soft delete)
       await this.likeRepository.update(existingLike.id, {
         deletedAt: new Date(),
       });
 
-      // Cập nhật số lượng like
       if (articleId) {
         await this.articleRepository.update(articleId, {
           likeCount: () => 'likeCount - 1',
         });
       }
-
       if (commentId) {
         await this.commentRepository.update(commentId, {
           likeCount: () => 'likeCount - 1',
@@ -97,29 +96,24 @@ export class LikesService {
       return new BaseResponse(HttpStatus.OK, 'Bỏ like thành công', {
         liked: false,
         likeCount: articleId
-          ? (await this.articleRepository.findOne({ where: { id: articleId } }))
-              .likeCount
-          : (await this.commentRepository.findOne({ where: { id: commentId } }))
-              .likeCount,
+          ? (await this.articleRepository.findOne({
+              where: { id: articleId },
+            }))!.likeCount
+          : (await this.commentRepository.findOne({
+              where: { id: commentId },
+            }))!.likeCount,
       });
-    } else {
-      // Nếu chưa like thì like
-      const newLike = this.likeRepository.create({
-        userId: id,
-        articleId: articleId || null,
-        commentId: commentId || null,
-        createdBy: id,
-      });
+    }
 
-      await this.likeRepository.save(newLike);
+    if (existingLike && existingLike.deletedAt) {
+      // Đã từng like nhưng bị soft delete -> khôi phục
+      await this.likeRepository.update(existingLike.id, { deletedAt: null });
 
-      // Cập nhật số lượng like
       if (articleId) {
         await this.articleRepository.update(articleId, {
           likeCount: () => 'likeCount + 1',
         });
       }
-
       if (commentId) {
         await this.commentRepository.update(commentId, {
           likeCount: () => 'likeCount + 1',
@@ -129,12 +123,43 @@ export class LikesService {
       return new BaseResponse(HttpStatus.OK, 'Like thành công', {
         liked: true,
         likeCount: articleId
-          ? (await this.articleRepository.findOne({ where: { id: articleId } }))
-              .likeCount
-          : (await this.commentRepository.findOne({ where: { id: commentId } }))
-              .likeCount,
+          ? (await this.articleRepository.findOne({
+              where: { id: articleId },
+            }))!.likeCount
+          : (await this.commentRepository.findOne({
+              where: { id: commentId },
+            }))!.likeCount,
       });
     }
+
+    // Chưa có like -> tạo mới
+    const newLike = this.likeRepository.create({
+      userId: id,
+      articleId: articleId || null,
+      commentId: commentId || null,
+      createdBy: id,
+    });
+    await this.likeRepository.save(newLike);
+
+    if (articleId) {
+      await this.articleRepository.update(articleId, {
+        likeCount: () => 'likeCount + 1',
+      });
+    }
+    if (commentId) {
+      await this.commentRepository.update(commentId, {
+        likeCount: () => 'likeCount + 1',
+      });
+    }
+
+    return new BaseResponse(HttpStatus.OK, 'Like thành công', {
+      liked: true,
+      likeCount: articleId
+        ? (await this.articleRepository.findOne({ where: { id: articleId } }))!
+            .likeCount
+        : (await this.commentRepository.findOne({ where: { id: commentId } }))!
+            .likeCount,
+    });
   }
 
   // Lấy danh sách người đã like bài viết
@@ -147,18 +172,33 @@ export class LikesService {
       throw new NotFoundException('Không tìm thấy bài viết');
     }
 
-    const likes = await this.likeRepository.find({
-      where: { articleId },
-      relations: ['user'],
-    });
+    const likes = await this.likeRepository
+      .createQueryBuilder('like')
+      .innerJoinAndSelect('like.user', 'user')
+      .where('like.articleId = :articleId', { articleId })
+      .andWhere('like.deletedAt IS NULL')
+      .andWhere('user.deletedAt IS NULL')
+      .getMany();
 
-    const likedBy = likes.map((like) => ({
-      id: like.user.id,
-      username: like.user.username,
-      fullName: like.user.fullName,
-      avatar: like.user.avatar,
-      likedAt: like.createdAt,
-    }));
+    const likedBy = likes
+      .map((like) =>
+        like.user
+          ? {
+              id: like.user.id,
+              username: like.user.username,
+              fullName: like.user.fullName,
+              avatar: like.user.avatar,
+              likedAt: like.createdAt,
+            }
+          : undefined,
+      )
+      .filter(Boolean) as Array<{
+      id: number;
+      username: string;
+      fullName: string;
+      avatar: string;
+      likedAt: Date;
+    }>;
 
     return new BaseResponse(HttpStatus.OK, 'Lấy danh sách like thành công', {
       articleId,
@@ -177,18 +217,33 @@ export class LikesService {
       throw new NotFoundException('Không tìm thấy bình luận');
     }
 
-    const likes = await this.likeRepository.find({
-      where: { commentId },
-      relations: ['user'],
-    });
+    const likes = await this.likeRepository
+      .createQueryBuilder('like')
+      .innerJoinAndSelect('like.user', 'user')
+      .where('like.commentId = :commentId', { commentId })
+      .andWhere('like.deletedAt IS NULL')
+      .andWhere('user.deletedAt IS NULL')
+      .getMany();
 
-    const likedBy = likes.map((like) => ({
-      id: like.user.id,
-      username: like.user.username,
-      fullName: like.user.fullName,
-      avatar: like.user.avatar,
-      likedAt: like.createdAt,
-    }));
+    const likedBy = likes
+      .map((like) =>
+        like.user
+          ? {
+              id: like.user.id,
+              username: like.user.username,
+              fullName: like.user.fullName,
+              avatar: like.user.avatar,
+              likedAt: like.createdAt,
+            }
+          : undefined,
+      )
+      .filter(Boolean) as Array<{
+      id: number;
+      username: string;
+      fullName: string;
+      avatar: string;
+      likedAt: Date;
+    }>;
 
     return new BaseResponse(HttpStatus.OK, 'Lấy danh sách like thành công', {
       commentId,

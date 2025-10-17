@@ -251,17 +251,21 @@ export class ArticlesService {
       image: article.image,
       likeCount: article.likeCount,
       commentCount: article.commentCount,
-      category: {
-        id: article.category.id,
-        name: article.category.name,
-        description: article.category.description,
-      },
-      author: {
-        id: article.author.id,
-        username: article.author.username,
-        fullName: article.author.fullName,
-        avatar: article.author.avatar,
-      },
+      category: article.category
+        ? {
+            id: article.category.id,
+            name: article.category.name,
+            description: article.category.description,
+          }
+        : undefined,
+      author: article.author
+        ? {
+            id: article.author.id,
+            username: article.author.username,
+            fullName: article.author.fullName,
+            avatar: article.author.avatar,
+          }
+        : undefined,
       createdAt: article.createdAt,
       updatedAt: article.updatedAt,
     });

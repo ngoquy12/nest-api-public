@@ -31,15 +31,19 @@ export class ArticleCategoriesService {
   ) {
     const { id } = user;
 
-    const { name, description, image } = createArticleCategoryDto as any;
+    const dto: any = createArticleCategoryDto as any;
+    const rawName = dto.name ?? dto.categoryName;
+    const rawDescription = dto.description ?? dto.categoryDescription;
+    const rawImage = dto.image ?? dto.categoryImage;
 
-    const safeName = typeof name === 'string' ? name.trim() : '';
+    const safeName = typeof rawName === 'string' ? rawName.trim() : '';
     if (!safeName) {
       throw new BadRequestException('Tên danh mục là bắt buộc');
     }
     const safeDescription =
-      typeof description === 'string' ? description.trim() : undefined;
-    const safeImage = typeof image === 'string' ? image.trim() : undefined;
+      typeof rawDescription === 'string' ? rawDescription.trim() : undefined;
+    const safeImage =
+      typeof rawImage === 'string' ? rawImage.trim() : undefined;
 
     // Kiểm tra trùng tên
     const existingCategory = await this.articleCategoryRepository.findOne({

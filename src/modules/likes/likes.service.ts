@@ -181,21 +181,31 @@ export class LikesService {
       .getMany();
 
     const likedBy = likes
-      .map((like) =>
-        like.user
-          ? {
-              id: like.user.id,
-              username: like.user.username,
-              fullName: like.user.fullName,
-              avatar: like.user.avatar,
-              likedAt: like.createdAt,
-            }
-          : undefined,
-      )
+      .map((like) => {
+        const u: any = like.user;
+        if (!u) return undefined;
+        const DEFAULT_AVATAR =
+          'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+        const name = [u.firstName, u.lastName]
+          .filter((v: string) => !!v)
+          .join(' ')
+          .trim();
+        return {
+          id: u.id,
+          name: name || u.phoneNumber || `User #${u.id}`,
+          firstName: u.firstName ?? null,
+          lastName: u.lastName ?? null,
+          phoneNumber: u.phoneNumber ?? null,
+          avatar: DEFAULT_AVATAR,
+          likedAt: like.createdAt,
+        };
+      })
       .filter(Boolean) as Array<{
       id: number;
-      username: string;
-      fullName: string;
+      name: string;
+      firstName: string | null;
+      lastName: string | null;
+      phoneNumber: string | null;
       avatar: string;
       likedAt: Date;
     }>;
@@ -226,21 +236,31 @@ export class LikesService {
       .getMany();
 
     const likedBy = likes
-      .map((like) =>
-        like.user
-          ? {
-              id: like.user.id,
-              username: like.user.username,
-              fullName: like.user.fullName,
-              avatar: like.user.avatar,
-              likedAt: like.createdAt,
-            }
-          : undefined,
-      )
+      .map((like) => {
+        const u: any = like.user;
+        if (!u) return undefined;
+        const DEFAULT_AVATAR =
+          'https://www.svgrepo.com/show/452030/avatar-default.svg';
+        const name = [u.firstName, u.lastName]
+          .filter((v: string) => !!v)
+          .join(' ')
+          .trim();
+        return {
+          id: u.id,
+          name: name || u.phoneNumber || `User #${u.id}`,
+          firstName: u.firstName ?? null,
+          lastName: u.lastName ?? null,
+          phoneNumber: u.phoneNumber ?? null,
+          avatar: DEFAULT_AVATAR,
+          likedAt: like.createdAt,
+        };
+      })
       .filter(Boolean) as Array<{
       id: number;
-      username: string;
-      fullName: string;
+      name: string;
+      firstName: string | null;
+      lastName: string | null;
+      phoneNumber: string | null;
       avatar: string;
       likedAt: Date;
     }>;

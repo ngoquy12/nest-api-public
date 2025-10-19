@@ -17,14 +17,14 @@ export class Like extends BaseEntity {
   type: string;
 
   @ManyToOne('Article', 'likes')
-  @JoinColumn({ name: 'articleId' })
+  @JoinColumn({ name: 'article_id' })
   article: any;
 
   @ManyToOne('User', 'likes')
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: 'user_id' })
   user: any;
 
   @ManyToOne('Comment', 'likes')
-  @JoinColumn({ name: 'commentId' })
+  @JoinColumn({ name: 'comment_id' })
   comment: any;
 }

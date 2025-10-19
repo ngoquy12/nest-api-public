@@ -81,55 +81,69 @@ export class CommentsService {
 
   // Lấy danh sách bình luận của bài viết
   async getCommentsByArticle(articleId: number) {
-    const queryBuilder = this.commentRepository
-      .createQueryBuilder('comment')
-      .leftJoinAndSelect('comment.user', 'user')
-      .leftJoinAndSelect('comment.replies', 'replies')
-      .leftJoinAndSelect('replies.user', 'replyUser')
-      .where('comment.articleId = :articleId', { articleId })
-      .andWhere('comment.parentId IS NULL') // Chỉ lấy bình luận gốc
-      .orderBy('comment.createdAt', 'DESC');
+    // Lấy toàn bộ bình luận của bài viết (bao gồm user) rồi build cây replies vô hạn cấp
+    const allComments = await this.commentRepository.find({
+      where: { articleId },
+      relations: ['user'],
+      order: { createdAt: 'ASC' },
+    });
 
-    const data = await queryBuilder.getMany();
+    const idToNode = new Map<number, any>();
+    const roots: any[] = [];
 
-    const comments = data.map((comment) => ({
-      id: comment.id,
-      content: comment.content,
-      likeCount: comment.likeCount,
-      replyCount: comment.replies.length,
-      userId: comment.userId,
-      user: comment.user
-        ? {
-            id: comment.user.id,
-            username: comment.user.username,
-            fullName: comment.user.fullName,
-            avatar: comment.user.avatar,
-          }
-        : undefined,
-      replies: comment.replies.map((reply) => ({
-        id: reply.id,
-        content: reply.content,
-        likeCount: reply.likeCount,
-        userId: reply.userId,
-        user: reply.user
+    // Khởi tạo node map
+    for (const c of allComments) {
+      idToNode.set(c.id, {
+        id: c.id,
+        content: c.content,
+        likeCount: c.likeCount,
+        userId: c.userId,
+        user: c.user
           ? {
-              id: reply.user.id,
-              username: reply.user.username,
-              fullName: reply.user.fullName,
-              avatar: reply.user.avatar,
+              id: c.user.id,
+              username: c.user.username,
+              fullName: c.user.fullName,
+              avatar: c.user.avatar,
             }
           : undefined,
-        createdAt: reply.createdAt,
-        updatedAt: reply.updatedAt,
-      })),
-      createdAt: comment.createdAt,
-      updatedAt: comment.updatedAt,
-    }));
+        replies: [],
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+      });
+    }
+
+    // Liên kết parent -> replies
+    for (const c of allComments) {
+      const node = idToNode.get(c.id);
+      if (c.parentId) {
+        const parentNode = idToNode.get(c.parentId);
+        if (parentNode) parentNode.replies.push(node);
+        else roots.push(node); // fallback nếu thiếu parent
+      } else {
+        roots.push(node);
+      }
+    }
+
+    // Tính replyCount theo tổng số replies (đệ quy)
+    const computeReplyCount = (node: any): number => {
+      if (!node.replies || node.replies.length === 0) return 0;
+      let count = node.replies.length;
+      for (const child of node.replies) count += computeReplyCount(child);
+      return count;
+    };
+
+    for (const root of roots) {
+      root.replyCount = computeReplyCount(root);
+    }
+
+    // Sắp xếp root theo thời gian mới nhất trước (giống behavior cũ DESC),
+    // trong khi đã tải all ASC để giữ thứ tự hội thoại trong nhánh.
+    roots.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 
     return new BaseResponse(
       HttpStatus.OK,
       'Lấy danh sách bình luận thành công',
-      comments,
+      roots,
     );
   }
 

@@ -281,41 +281,44 @@ export class ArticlesService {
 
   // Danh sách bài viết đã lưu của tôi
   async getMySavedArticles(user: JwtPayloadUser) {
-    const saved = await this.savedArticleRepository.find({
-      where: { userId: user.id },
-      relations: ['article', 'article.category', 'article.author'],
-    });
+    const articles = await this.articleRepository
+      .createQueryBuilder('article')
+      .innerJoin(
+        SavedArticle,
+        'saved',
+        'saved.articleId = article.id AND saved.userId = :userId AND saved.deletedAt IS NULL',
+        { userId: user.id },
+      )
+      .leftJoinAndSelect('article.category', 'category')
+      .leftJoinAndSelect('article.author', 'author')
+      .orderBy('saved.createdAt', 'DESC')
+      .getMany();
 
-    const data = saved
-      .filter((s) => s.article)
-      .map((s) => {
-        const a = s.article;
-        return {
-          id: a.id,
-          title: a.title,
-          content: a.content,
-          image: a.image,
-          likeCount: a.likeCount,
-          commentCount: a.commentCount,
-          category: a.category
-            ? {
-                id: a.category.id,
-                name: a.category.name,
-                description: a.category.description,
-              }
-            : undefined,
-          author: a.author
-            ? {
-                id: a.author.id,
-                username: a.author.username,
-                fullName: a.author.fullName,
-                avatar: a.author.avatar,
-              }
-            : undefined,
-          createdAt: a.createdAt,
-          updatedAt: a.updatedAt,
-        };
-      });
+    const data = articles.map((a) => ({
+      id: a.id,
+      title: a.title,
+      content: a.content,
+      image: a.image,
+      likeCount: a.likeCount,
+      commentCount: a.commentCount,
+      category: a.category
+        ? {
+            id: a.category.id,
+            name: a.category.name,
+            description: a.category.description,
+          }
+        : undefined,
+      author: a.author
+        ? {
+            id: a.author.id,
+            username: a.author.username,
+            fullName: a.author.fullName,
+            avatar: a.author.avatar,
+          }
+        : undefined,
+      createdAt: a.createdAt,
+      updatedAt: a.updatedAt,
+    }));
 
     return new BaseResponse(
       HttpStatus.OK,

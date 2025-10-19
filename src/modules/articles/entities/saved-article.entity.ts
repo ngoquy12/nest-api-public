@@ -11,10 +11,10 @@ export class SavedArticle extends BaseEntity {
   articleId: number;
 
   @ManyToOne('User', 'savedArticles')
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: 'user_id' })
   user: any;
 
   @ManyToOne('Article', 'savedByUsers')
-  @JoinColumn({ name: 'articleId' })
+  @JoinColumn({ name: 'article_id' })
   article: any;
 }

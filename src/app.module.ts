@@ -19,7 +19,11 @@ import { ArticlesModule } from './modules/articles/articles.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { LikesModule } from './modules/likes/likes.module';
 import { CartsModule } from './modules/carts/carts.module';
+import { ChatModule } from './modules/chats/chat.module';
+import { FriendModule } from './modules/friends/friend.module';
+import { NotificationModule } from './modules/notifications/notification.module';
 import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ContactsModule } from './modules/contacts/contact.module';
 
 @Module({
   imports: [
@@ -54,6 +58,10 @@ import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     CommentsModule,
     LikesModule,
     CartsModule,
+    ChatModule,
+    FriendModule,
+    NotificationModule,
+    ContactsModule,
   ],
   providers: [
     RoleSeederService,

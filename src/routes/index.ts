@@ -11,6 +11,10 @@ import { PositionsModule } from 'src/modules/positions/positions.module';
 import { ProductsModule } from 'src/modules/products/products.module';
 import { UsersModule } from 'src/modules/users/users.module';
 import { CartsModule } from 'src/modules/carts/carts.module';
+import { ChatModule } from 'src/modules/chats/chat.module';
+import { FriendModule } from 'src/modules/friends/friend.module';
+import { NotificationModule } from 'src/modules/notifications/notification.module';
+import { ContactsModule } from 'src/modules/contacts/contact.module';
 
 export const routes: Routes = [
   {
@@ -65,5 +69,21 @@ export const routes: Routes = [
   {
     path: 'likes',
     module: LikesModule,
+  },
+  {
+    path: 'chats',
+    module: ChatModule,
+  },
+  {
+    path: 'friends',
+    module: FriendModule,
+  },
+  {
+    path: 'notifications',
+    module: NotificationModule,
+  },
+  {
+    path: 'contacts',
+    module: ContactsModule,
   },
 ];

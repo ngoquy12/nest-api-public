@@ -8,6 +8,10 @@ import { Article } from 'src/modules/articles/entities/article.entity';
 import { Comment } from 'src/modules/comments/entities/comment.entity';
 import { Like } from 'src/modules/likes/entities/like.entity';
 import { Cart } from 'src/modules/carts/entities/cart.entity';
+import { Conversation } from 'src/modules/chats/entities/conversation.entity';
+import { Message } from 'src/modules/chats/entities/message.entity';
+import { Friend } from 'src/modules/friends/entities/friend.entity';
+import { Notification } from 'src/modules/notifications/entities/notification.entity';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -59,4 +63,19 @@ export class User extends BaseEntity {
 
   @OneToMany(() => Cart, (cart) => cart.user)
   carts: Cart[];
+
+  @OneToMany(() => Conversation, (conversation) => conversation.creator)
+  conversations: Conversation[];
+
+  @OneToMany(() => Message, (message) => message.sender)
+  messages: Message[];
+
+  @OneToMany(() => Friend, (friend) => friend.requester)
+  sentFriendRequests: Friend[];
+
+  @OneToMany(() => Friend, (friend) => friend.addressee)
+  receivedFriendRequests: Friend[];
+
+  @OneToMany(() => Notification, (notification) => notification.user)
+  notifications: Notification[];
 }

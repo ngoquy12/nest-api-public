@@ -38,8 +38,7 @@ async function bootstrap() {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('RESTful API Documentation')
     .setDescription(
-      `# Tài liệu API miễn phí cho cộng đồng
-
+      `
 ## 📚 Giới thiệu
 
 Bộ tài liệu API này được xây dựng nhằm mục đích phục vụ cộng đồng học tập và phát triển kỹ năng lập trình. Hệ thống cung cấp một ví dụ thực tế về cách xây dựng ứng dụng Full-Stack hoàn chỉnh, từ backend đến frontend, áp dụng các best practices và design patterns hiện đại.
@@ -80,7 +79,8 @@ Bộ tài liệu API này được xây dựng nhằm mục đích phục vụ c
 
 ## 💡 Lưu ý
 
-Tài liệu này được thiết kế để hỗ trợ quá trình học tập và nghiên cứu. Mỗi endpoint đều có ví dụ request/response cụ thể giúp người dùng dễ dàng hiểu và tích hợp.
+Tài liệu này được thiết kế để hỗ trợ quá trình học tập và nghiên cứu.
+Không được thực hiện các hành vi chống phá, tấn công không lành mạnh
 
 **Phiên bản API**: 1.0.0`,
     )

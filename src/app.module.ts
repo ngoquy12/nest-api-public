@@ -35,7 +35,13 @@ import { ContactsModule } from './modules/contacts/contact.module';
 
     ThrottlerModule.forRoot({
       throttlers: [
-        { ttl: seconds(60), limit: 120 }, // mặc định: 120 req/phút
+        {
+          ttl: seconds(60),
+          limit: 120, // Giới hạn: 120 requests/phút cho MỖI người dùng/IP riêng lẻ
+          // Lưu ý: Đây là giới hạn theo từng user/IP, không phải tổng thể hệ thống
+          // Ví dụ: 130 người, mỗi người gửi 1 request → không ai bị chặn
+          // Nếu muốn giới hạn tổng thể, cần dùng Redis storage và custom logic
+        },
       ],
     }),
 

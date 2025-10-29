@@ -9,7 +9,6 @@ import { EmployeesModule } from 'src/modules/employees/employees.module';
 import { LikesModule } from 'src/modules/likes/likes.module';
 import { PositionsModule } from 'src/modules/positions/positions.module';
 import { ProductsModule } from 'src/modules/products/products.module';
-import { UsersModule } from 'src/modules/users/users.module';
 import { CartsModule } from 'src/modules/carts/carts.module';
 import { ChatModule } from 'src/modules/chats/chat.module';
 import { FriendModule } from 'src/modules/friends/friend.module';
@@ -20,10 +19,6 @@ export const routes: Routes = [
   {
     path: 'auths',
     module: AuthsModule,
-  },
-  {
-    path: 'users',
-    module: UsersModule,
   },
 
   {
